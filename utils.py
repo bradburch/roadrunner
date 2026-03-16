@@ -1,9 +1,8 @@
 from id_dates import IdDates
-import json
-from requests import request
+from requests import request, Response
 
 
-def connection(method: str, url: str, headers: dict | None = None, data: dict | None = None) -> json:
+def connection(method: str, url: str, headers: dict | None = None, data: dict | None = None) -> Response:
     headers = headers or {}
     data = data or {}
 

@@ -4,7 +4,6 @@ from datetime import datetime, timezone, timedelta
 from utils import connection
 
 import configparser
-import json
 
 config = configparser.ConfigParser()
 config.read("config.ini")
@@ -15,7 +14,7 @@ _ebird_api_header = {
     }
 
 
-def build_bird_dict(observation: json) -> dict:
+def build_bird_dict(observation: list[dict]) -> dict:
 
     code_num = parse(observation, "speciesCode", "howManyStr")
     taxonomy = __get_taxonomy(code_num)
@@ -25,7 +24,7 @@ def build_bird_dict(observation: json) -> dict:
     return species_num
 
 
-def get_recent_checklists() -> dict: 
+def get_recent_checklists() -> list[IdDates]:
     
     ebird_url = "https://ebird.org"
 
@@ -43,7 +42,7 @@ def get_recent_checklists() -> dict:
     return start_id
  
 
-def __get_ids_and_starts(respJson: json) -> dict:
+def __get_ids_and_starts(respJson: list) -> list[IdDates]:
 
     start_id = []
 
@@ -65,6 +64,9 @@ def get_ebird_dates_observation(id_date: IdDates) -> tuple:
     start_date = id_date.start_date
 
     observation = __get_observation(identifier)
+    if "durationHrs" not in observation:
+        return (None, None)
+    
     elapsed_time = observation["durationHrs"]
     end_date = __calculate_end_time(start_date, elapsed_time)
 
@@ -125,7 +127,7 @@ def parse(response: list, key1: str, key2: str) -> dict:
     return new_dict
 
 
-def __calculate_end_time(start_date: datetime, elapsed_time: datetime) -> datetime:
+def __calculate_end_time(start_date: datetime, elapsed_time: float) -> datetime:
 
     delta = timedelta(hours=elapsed_time)
     end_date = start_date + delta

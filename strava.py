@@ -1,9 +1,9 @@
 from id_dates import IdDates
+from requests import Response
 from utils import connection
 
 import configparser
 import datetime
-import json
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -24,7 +24,7 @@ def refresh() -> None:
     __update_config(resp.json())
 
 
-def get_recent_activities() -> list:
+def get_recent_activities() -> dict[datetime.date, list[IdDates]]:
 
     path = "activities"
     params = {
@@ -42,7 +42,7 @@ def get_recent_activities() -> list:
     return activity_list
 
 
-def update_activity(id: str, bird_list: str) -> json:
+def update_activity(id: str, bird_list: str) -> Response:
 
     title = "Birds seen during activity:"
     description = f"{title}\n" + bird_list
@@ -60,7 +60,7 @@ def update_activity(id: str, bird_list: str) -> json:
     return resp
 
 
-def __create_activity_list(activities: json) -> dict:
+def __create_activity_list(activities: list) -> dict[datetime.date, list[IdDates]]:
     
     start_activity = {}
 
@@ -77,7 +77,7 @@ def __create_activity_list(activities: json) -> dict:
     return start_activity
 
 
-def __calculate_end_time(start_date, elapsed_time) -> datetime:
+def __calculate_end_time(start_date, elapsed_time) -> datetime.datetime:
 
     delta = datetime.timedelta(seconds=elapsed_time)
     end_date = start_date + delta
