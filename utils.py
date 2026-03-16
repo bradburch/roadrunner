@@ -3,9 +3,11 @@ import json
 from requests import request
 
 
-def connection(method: str, url: str, headers={}, data={}) -> json: 
+def connection(method: str, url: str, headers: dict | None = None, data: dict | None = None) -> json:
+    headers = headers or {}
+    data = data or {}
 
-    response = request(method, url, headers=headers, data=data)
+    response = request(method, url, headers=headers, data=data, timeout=30)
 
     if response.status_code == 200:
         return response
@@ -19,9 +21,8 @@ def compare(strava: IdDates, ebird: IdDates) -> bool:
 
     latest_start = max(strava.start_date, ebird.start_date)
     earliest_end = min(strava.end_date, ebird.end_date)
-    delta = (earliest_end - latest_start).days + 1
 
-    return delta > 0
+    return earliest_end > latest_start
 
 
 def add_dict(current: dict, new: dict):
