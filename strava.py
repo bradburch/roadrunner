@@ -42,7 +42,7 @@ def get_recent_activities() -> dict[datetime.date, list[IdDates]]:
     return activity_list
 
 
-def update_activity(id: str, bird_list: str) -> Response:
+def update_activity(activity_id: str, bird_list: str) -> Response:
 
     title = "Birds seen during activity:"
     description = f"{title}\n" + bird_list
@@ -54,7 +54,7 @@ def update_activity(id: str, bird_list: str) -> Response:
     path = "activities"
     headers = {"Authorization": f"Bearer {strava_config.get('strava_access_token')}"}
 
-    url = __create_url(path, {}, id)
+    url = __create_url(path, {}, activity_id)
     resp = connection("PUT", url, headers=headers, data=data)
     
     return resp
@@ -65,12 +65,12 @@ def __create_activity_list(activities: list) -> dict[datetime.date, list[IdDates
     start_activity = {}
 
     for activity in activities:
-        id = activity["id"]
+        activity_id = activity["id"]
         start_date_local = activity["start_date_local"]
         strava_start_date = datetime.datetime.fromisoformat(start_date_local)
         elapsed_time = activity["elapsed_time"]
         end_date = __calculate_end_time(strava_start_date, elapsed_time)
-        act = IdDates(id, strava_start_date, end_date)
+        act = IdDates(activity_id, strava_start_date, end_date)
 
         start_activity.setdefault(strava_start_date.date(), []).append(act)
 
@@ -85,14 +85,14 @@ def __calculate_end_time(start_date, elapsed_time) -> datetime.datetime:
     return end_date
 
 
-def __create_url(path: str, params: dict, id: str = None) -> str:
+def __create_url(path: str, params: dict, activity_id: str = None) -> str:
 
     strava_api_url = "https://www.strava.com/api/v3/"
     params_list = "&".join("{}={}".format(key, value) for key, value in params.items())
 
     url = f"{strava_api_url}{path}"
-    if id: 
-        url = f"{url}/{id}?{params_list}"
+    if activity_id:
+        url = f"{url}/{activity_id}?{params_list}"
     else:
         url = f"{url}?{params_list}"
 

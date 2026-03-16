@@ -78,7 +78,7 @@ def __get_observation(sub_id: str) -> dict:
     path = "product/checklist/view"
     params = {}
 
-    url = __create_url(path, params, id=sub_id)
+    url = __create_url(path, params, resource_id=sub_id)
     resp = connection("GET", url, _ebird_api_header)
 
     return resp.json()
@@ -135,14 +135,14 @@ def __calculate_end_time(start_date: datetime, elapsed_time: float) -> datetime:
     return end_date
 
 
-def __create_url(path: str, params: dict, ebird_api_url: str = "https://api.ebird.org/v2/", id: str = None) -> str:
-    
+def __create_url(path: str, params: dict, ebird_api_url: str = "https://api.ebird.org/v2/", resource_id: str = None) -> str:
+
     params_list = "&".join("{}={}".format(key, value) for key, value in params.items())
 
     url = f"{ebird_api_url}{path}"
 
-    if id:
-        url = f"{url}/{id}"
+    if resource_id:
+        url = f"{url}/{resource_id}"
     else:
         url = f"{url}?{params_list}"
 
