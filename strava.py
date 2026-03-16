@@ -72,7 +72,7 @@ def __create_activity_list(activities: json) -> dict:
         end_date = __calculate_end_time(strava_start_date, elapsed_time)
         act = IdDates(id, strava_start_date, end_date)
 
-        start_activity[strava_start_date.date()] = act
+        start_activity.setdefault(strava_start_date.date(), []).append(act)
 
     return start_activity
 
