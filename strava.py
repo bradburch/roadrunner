@@ -35,9 +35,9 @@ def get_recent_activities() -> dict[datetime.date, list[IdDates]]:
 
     url = __create_url(path, params)
     resp = connection("GET", url, headers=headers)
-    respJson = resp.json()
+    resp_json = resp.json()
 
-    activity_list = __create_activity_list(respJson)
+    activity_list = __create_activity_list(resp_json)
     
     return activity_list
 
@@ -67,7 +67,7 @@ def __create_activity_list(activities: list) -> dict[datetime.date, list[IdDates
     for activity in activities:
         activity_id = activity["id"]
         start_date_local = activity["start_date_local"]
-        strava_start_date = datetime.datetime.fromisoformat(start_date_local)
+        strava_start_date = datetime.datetime.fromisoformat(start_date_local).replace(tzinfo=datetime.timezone.utc)
         elapsed_time = activity["elapsed_time"]
         end_date = __calculate_end_time(strava_start_date, elapsed_time)
         act = IdDates(activity_id, strava_start_date, end_date)
@@ -99,10 +99,10 @@ def __create_url(path: str, params: dict, activity_id: str = None) -> str:
     return url
 
 
-def __update_config(respJson: dict) -> None:
+def __update_config(resp_json: dict) -> None:
 
-    config.set('strava', 'strava_access_token', respJson["access_token"])
-    config.set('strava', 'strava_refresh_token', respJson["refresh_token"])
+    config.set('strava', 'strava_access_token', resp_json["access_token"])
+    config.set('strava', 'strava_refresh_token', resp_json["refresh_token"])
 
     with open('config.ini', 'w') as configfile:
         config.write(configfile)

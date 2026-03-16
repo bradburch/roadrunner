@@ -4,6 +4,7 @@ from datetime import datetime, timezone, timedelta
 from utils import connection
 
 import configparser
+import requests
 
 config = configparser.ConfigParser()
 config.read("config.ini")
@@ -34,19 +35,19 @@ def get_recent_checklists() -> list[IdDates]:
         "username": ebird_config.get('ebird_profile_id')
     }
 
-    url = __create_url(path, params,ebird_api_url=ebird_url)
-    resp = connection("GET", url)
-    respJson = resp.json()
-    start_id = __get_ids_and_starts(respJson)
+    url = __create_url(path, params, ebird_api_url=ebird_url)
+    resp = connection("GET", url, _ebird_api_header)
+    resp_json = resp.json()
+    start_id = __get_ids_and_starts(resp_json)
     
     return start_id
  
 
-def __get_ids_and_starts(respJson: list) -> list[IdDates]:
+def __get_ids_and_starts(resp_json: list) -> list[IdDates]:
 
     start_id = []
 
-    for cl in respJson:
+    for cl in resp_json:
         iso_obs_date = cl["isoObsDate"]
         identifier = cl["subId"]
         start_date = datetime.fromisoformat(iso_obs_date)
@@ -84,18 +85,13 @@ def __get_observation(sub_id: str) -> dict:
     return resp.json()
 
 
-def __get_taxonomy(code_num: dict) -> dict: 
-    
-    codes = "".join("&species=" + key for key, _ in code_num.items())
+def __get_taxonomy(code_num: dict) -> dict:
 
     path = "ref/taxonomy/ebird"
-    params = {
-        "": codes,
-        "fmt": "json"
-    }
+    params = [("species", code) for code in code_num] + [("fmt", "json")]
 
-    url = __create_url(path, params)
-    resp = connection("GET", url, _ebird_api_header)
+    url = f"https://api.ebird.org/v2/{path}"
+    resp = requests.get(url, params=params, headers=_ebird_api_header, timeout=30)
 
     return resp.json()
 
@@ -112,19 +108,14 @@ def __combine_species_num(code_num: dict, code_species: dict) -> dict:
 
 def create_bird_description(species_num: dict) -> str:
 
-    bird_list = "".join(value + " " + key + "\n" for key, value in species_num.items())
+    bird_list = "".join(f"{value} {key}\n" for key, value in species_num.items())
 
     return bird_list
 
 
 def parse(response: list, key1: str, key2: str) -> dict:
 
-    new_dict = {}
-
-    for i in range(len(response)):
-        new_dict[response[i][key1]] = response[i][key2]
-
-    return new_dict
+    return {item[key1]: item[key2] for item in response}
 
 
 def __calculate_end_time(start_date: datetime, elapsed_time: float) -> datetime:

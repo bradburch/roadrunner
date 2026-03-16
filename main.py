@@ -19,8 +19,8 @@ def main():
             if end_date is None:
                 print(f"Checklist {checklist.identifier} has no valid end date, skipping...")
                 continue
-            checklist.update_end_date(end_date)
-            checklist.update_obs(observation)
+            checklist.end_date = end_date
+            checklist.obs = observation
 
             activities = activity_list.get(checklist.start_date.date())
             for activity in activities:

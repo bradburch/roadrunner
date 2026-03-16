@@ -33,7 +33,7 @@ def add_dict(current: dict, new: dict):
             if v.isnumeric() and new_dict[k].isnumeric():
                 new_value = int(v) + int(new_dict[k])
                 new_dict[k] = str(new_value)
-            elif not v.isnumeric() or not new_dict[k].isnumeric():
+            else:
                 new_dict[k] = 'X'
         else:
             new_dict[k] = v

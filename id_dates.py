@@ -1,15 +1,10 @@
-class IdDates: 
-
-    def __init__(self, identifier, start_date, end_date = None, obs = None):
-        self.identifier = identifier
-        self.start_date = start_date
-        self.end_date = end_date
-        self.obs = obs
+from dataclasses import dataclass
+from datetime import datetime
 
 
-    def update_end_date(self, end_date):
-        self.end_date = end_date
-
-
-    def update_obs(self, obs):
-        self.obs = obs
+@dataclass
+class IdDates:
+    identifier: str
+    start_date: datetime
+    end_date: datetime | None = None
+    obs: list | None = None
