@@ -28,13 +28,13 @@ def get_recent_activities() -> list:
 
     path = "activities"
     params = {
-        "access_token": strava_config.get('strava_access_token'),
         "per_page": "5",
         "page": "1",
     }
+    headers = {"Authorization": f"Bearer {strava_config.get('strava_access_token')}"}
 
     url = __create_url(path, params)
-    resp = connection("GET", url)
+    resp = connection("GET", url, headers=headers)
     respJson = resp.json()
 
     activity_list = __create_activity_list(respJson)
@@ -46,18 +46,16 @@ def update_activity(id: str, bird_list: str) -> json:
 
     title = "Birds seen during activity:"
     description = f"{title}\n" + bird_list
-    
+
     data = {
         "description": description
     }
 
     path = "activities"
-    params = {
-        "access_token": strava_config.get('strava_access_token'),
-    }
+    headers = {"Authorization": f"Bearer {strava_config.get('strava_access_token')}"}
 
-    url = __create_url(path, params, id)
-    resp = connection("PUT", url, data=data)
+    url = __create_url(path, {}, id)
+    resp = connection("PUT", url, headers=headers, data=data)
     
     return resp
 
