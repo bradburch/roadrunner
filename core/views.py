@@ -11,6 +11,7 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import HttpResponseBadRequest, JsonResponse, HttpResponseForbidden
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils import timezone as dj_timezone
 from django.utils.html import format_html, format_html_join
 from django.views.decorators.csrf import csrf_exempt
@@ -34,7 +35,7 @@ def connect(request):
     request.session["oauth_state"] = state
     params = {
         "client_id": settings.STRAVA_CLIENT_ID,
-        "redirect_uri": request.build_absolute_uri("/strava/callback"),
+        "redirect_uri": request.build_absolute_uri(reverse("core:callback")),
         "response_type": "code",
         "scope": "activity:read_all,activity:write",
         "state": state,
