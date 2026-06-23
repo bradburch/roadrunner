@@ -1,98 +1,70 @@
-# eBird-Strava
+# Roadrunner
 
-Automatically updates your Strava activity descriptions with the birds observed during a corresponding eBird checklist. When the date and time of a Strava activity overlaps with an eBird checklist, the activity description is updated with the species and counts from that checklist.
+A multi-user web app that writes the birds from your eBird checklists into your overlapping Strava activity descriptions. Users log in with Strava and link an eBird profile ID.
 
-## How It Works
+## Environment Variables
 
-1. Fetches your recent eBird checklists
-2. Fetches your 5 most recent Strava activities
-3. Matches them by date and time overlap
-4. For each match, updates the Strava activity description with the observed species and counts
+| Variable | Description |
+|---|---|
+| `SECRET_KEY` | Django secret key — use a long random string in production |
+| `DEBUG` | Set to `True` for local development; `False` in production |
+| `ALLOWED_HOSTS` | Comma-separated list of hosts Django will serve (e.g. `localhost,127.0.0.1` or your deployed domain) |
+| `CSRF_TRUSTED_ORIGINS` | Comma-separated list of origins trusted for CSRF (e.g. `https://your-app.vercel.app`) |
+| `DATABASE_URL` | Postgres connection string — use Neon's **pooled** connection string for production (serverless opens a new connection per invocation) |
+| `EBIRD_API_TOKEN` | eBird API token — request one at https://ebird.org/data/download |
+| `STRAVA_CLIENT_ID` | Strava API application client ID |
+| `STRAVA_CLIENT_SECRET` | Strava API application client secret |
+| `STRAVA_WEBHOOK_VERIFY_TOKEN` | A secret string you choose; used to verify Strava webhook subscriptions |
 
-Multiple eBird checklists can match a single Strava activity (e.g. two short walks on the same day). In that case, the species counts are merged. Checklists without a recorded duration are skipped.
-
-## Prerequisites
-
-- [Docker](https://www.docker.com/)
-- An [eBird API token](https://ebird.org/data/download)
-- A [Strava API application](https://developers.strava.com/docs/) with a refresh token
-
-## Setup
-
-Create a `config.ini` file in the project root. This file is excluded from version control — do not commit it.
-
-```ini
-[ebird]
-ebird_api_token =
-ebird_profile_id =
-
-[strava]
-strava_refresh_token =
-strava_access_token =
-strava_client_id =
-strava_client_secret =
-```
-
-### eBird credentials
-
-- **`ebird_api_token`** — Request a free token at https://ebird.org/data/download
-- **`ebird_profile_id`** — Found in your eBird profile URL, directly after `/profile/`. Your profile must be set to public.
-
-  Example: `https://ebird.org/profile/`**`MzkyNjAwNA`**
-
-### Strava credentials
-
-- **`strava_client_id`** and **`strava_client_secret`** — Create an API application at https://www.strava.com/settings/api
-- **`strava_refresh_token`** and **`strava_access_token`** — Follow the [Strava OAuth flow](https://developers.strava.com/docs/authentication/) to obtain these tokens. The app will automatically refresh and persist the access token on each run.
-
-## Running
-
-### Docker (recommended)
-
-Build the Docker image:
+## Local Development
 
 ```bash
-docker build -t ebird-strava .
-```
-
-Run it:
-
-```bash
-docker run -v $(pwd)/config.ini:/usr/app/src/config.ini ebird-strava
-```
-
-Mounting `config.ini` as a volume ensures the refreshed Strava access token is saved back to your local file between runs.
-
-### Python
-
-```bash
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
-python main.py
+cp .env.example .env          # fill in your values
+python manage.py migrate
+python manage.py runserver
 ```
 
-## Output
+Run the test suite:
 
-On a successful match you will see the bird list printed to the console, followed by a confirmation:
-
-```
-3 American Robin
-2 Black-capped Chickadee
-1 White-breasted Nuthatch
-
-Updated Strava activity 12345678: https://www.strava.com/activities/12345678
+```bash
+python manage.py test
 ```
 
-The Strava activity description is written as:
+## Database
 
-```
-Birds seen during activity:
-3 American Robin
-2 Black-capped Chickadee
-1 White-breasted Nuthatch
+Roadrunner uses Postgres via `DATABASE_URL`. The recommended provider is [Neon](https://neon.tech). Use Neon's **pooled** connection string — each serverless invocation opens a fresh connection, so persistent connections are not used (`conn_max_age=0`).
+
+Migrations are run from your dev machine or CI against the Neon `DATABASE_URL`. They are **not** run automatically on Vercel deploy.
+
+```bash
+DATABASE_URL=<neon-pooled-url> python manage.py migrate
 ```
 
-If no eBird checklists overlap with any recent Strava activities, the script will print:
+## Vercel Deploy
 
+1. Set all environment variables in the Vercel dashboard (Settings > Environment Variables).
+2. Set `ALLOWED_HOSTS` to include your deployed domain (e.g. `your-app.vercel.app`).
+3. Set `CSRF_TRUSTED_ORIGINS` to include the full origin (e.g. `https://your-app.vercel.app`).
+4. Deploy:
+
+```bash
+vercel         # preview
+vercel --prod  # production
 ```
-No matching Strava activities and eBird checklists!
+
+## Strava Webhook
+
+After deploying, register a Strava push subscription pointing at your app's `/webhook` endpoint. The `verify_token` must match `STRAVA_WEBHOOK_VERIFY_TOKEN`.
+
+```bash
+curl -X POST https://www.strava.com/api/v3/push_subscriptions \
+  -F client_id=<STRAVA_CLIENT_ID> \
+  -F client_secret=<STRAVA_CLIENT_SECRET> \
+  -F callback_url=https://<your-app>/webhook \
+  -F verify_token=<STRAVA_WEBHOOK_VERIFY_TOKEN>
 ```
+
+This step is completed after live deploy when your callback URL is reachable.
