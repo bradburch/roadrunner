@@ -1,7 +1,9 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from unittest.mock import patch
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone as dj_timezone
+from django.contrib.auth.models import User
 from core.models import Profile
 
 
@@ -53,3 +55,39 @@ class OAuthViewTests(TestCase):
         session.save()
         resp = self.client.get(reverse("core:callback"), {"code": "C", "state": "wrong"})
         self.assertEqual(resp.status_code, 400)
+
+
+class DashboardTests(TestCase):
+    def _login(self):
+        user = User.objects.create(username="7")
+        Profile.objects.create(
+            user=user, strava_athlete_id=7, access_token="a", refresh_token="r",
+            expires_at=dj_timezone.now() + timedelta(hours=1),
+        )
+        self.client.force_login(user)
+        return user
+
+    def test_dashboard_requires_login(self):
+        resp = self.client.get(reverse("core:dashboard"))
+        self.assertEqual(resp.status_code, 302)  # redirected to login/landing
+
+    def test_dashboard_shows_for_logged_in(self):
+        self._login()
+        resp = self.client.get(reverse("core:dashboard"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "eBird")
+
+    def test_save_ebird_profile(self):
+        self._login()
+        resp = self.client.post(reverse("core:ebird_profile"), {"ebird_profile_id": "ABC123"})
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(Profile.objects.get(strava_athlete_id=7).ebird_profile_id, "ABC123")
+
+    @patch("core.views.process_account", return_value=[99])
+    def test_sync_invokes_process_account(self, proc):
+        user = self._login()
+        user.profile.ebird_profile_id = "ABC123"
+        user.profile.save(update_fields=["ebird_profile_id"])
+        resp = self.client.post(reverse("core:sync"))
+        self.assertEqual(resp.status_code, 302)
+        proc.assert_called_once()

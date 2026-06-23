@@ -55,6 +55,8 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 USE_TZ = True
 
+LOGIN_URL = "core:landing"
+
 # App-specific config (read by core.services)
 EBIRD_API_TOKEN = os.environ.get("EBIRD_API_TOKEN", "")
 STRAVA_CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID", "")

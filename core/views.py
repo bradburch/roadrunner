@@ -2,6 +2,7 @@ import secrets
 from datetime import datetime, timezone
 from django.conf import settings
 from django.contrib.auth import login
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import HttpResponseBadRequest
@@ -9,6 +10,7 @@ from django.shortcuts import redirect, render
 from urllib.parse import urlencode
 from .models import Profile
 from .services import strava
+from .services.sync import process_account
 
 STRAVA_AUTH_URL = "https://www.strava.com/oauth/authorize"
 
@@ -57,4 +59,33 @@ def callback(request):
         },
     )
     login(request, user)
-    return redirect("core:landing")
+    return redirect("core:dashboard")
+
+
+@login_required
+def dashboard(request):
+    profile = request.user.profile
+    return render(request, "core/dashboard.html", {"profile": profile})
+
+
+@login_required
+def ebird_profile(request):
+    profile = request.user.profile
+    profile.ebird_profile_id = request.POST.get("ebird_profile_id", "").strip()
+    profile.save(update_fields=["ebird_profile_id"])
+    messages.success(request, "eBird profile saved.")
+    return redirect("core:dashboard")
+
+
+@login_required
+def sync_now(request):
+    profile = request.user.profile
+    if not profile.ebird_profile_id:
+        messages.error(request, "Set your eBird profile ID first.")
+        return redirect("core:dashboard")
+    updated = process_account(profile)
+    if updated:
+        messages.success(request, f"Updated {len(updated)} activity(ies).")
+    else:
+        messages.info(request, "No matching checklists found for recent activities.")
+    return redirect("core:dashboard")

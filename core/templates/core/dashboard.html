@@ -1,0 +1,17 @@
+{% extends "core/base.html" %}
+{% block content %}
+<p>Connected as Strava athlete <strong>{{ profile.strava_athlete_id }}</strong>.</p>
+
+<form method="post" action="{% url 'core:ebird_profile' %}">
+  {% csrf_token %}
+  <label>eBird profile ID
+    <input name="ebird_profile_id" value="{{ profile.ebird_profile_id }}" placeholder="e.g. MzkyNjAwNA">
+  </label>
+  <button class="btn" type="submit">Save</button>
+</form>
+
+<form method="post" action="{% url 'core:sync' %}" style="margin-top:1rem">
+  {% csrf_token %}
+  <button class="btn" type="submit">Sync now</button>
+</form>
+{% endblock %}
