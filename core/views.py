@@ -1,3 +1,4 @@
+import json as _json
 import secrets
 from datetime import datetime, timezone
 from django.conf import settings
@@ -6,8 +7,9 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
 from django.contrib import messages
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, JsonResponse, HttpResponseForbidden
 from django.shortcuts import redirect, render
+from django.views.decorators.csrf import csrf_exempt
 from urllib.parse import urlencode
 from .models import Profile
 from .services import strava
@@ -94,11 +96,6 @@ def sync_now(request):
     return redirect("core:dashboard")
 
 
-import json as _json
-from django.http import JsonResponse, HttpResponseForbidden
-from django.views.decorators.csrf import csrf_exempt
-
-
 @csrf_exempt
 def webhook(request):
     if request.method == "GET":
@@ -106,7 +103,10 @@ def webhook(request):
             return HttpResponseForbidden("bad verify token")
         return JsonResponse({"hub.challenge": request.GET.get("hub.challenge")})
 
-    event = _json.loads(request.body or b"{}")
+    try:
+        event = _json.loads(request.body or b"{}")
+    except _json.JSONDecodeError:
+        event = {}
     if event.get("object_type") == "activity" and event.get("aspect_type") in ("create", "update"):
         profile = Profile.objects.filter(strava_athlete_id=event.get("owner_id")).first()
         if profile and profile.ebird_profile_id:

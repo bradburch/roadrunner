@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone, timedelta
 from unittest.mock import patch
 from django.test import TestCase
@@ -110,9 +111,6 @@ class DashboardTests(TestCase):
         proc.assert_not_called()
 
 
-import json
-
-
 class WebhookTests(TestCase):
     def test_get_verification_echoes_challenge(self):
         with self.settings(STRAVA_WEBHOOK_VERIFY_TOKEN="vt"):
@@ -149,6 +147,13 @@ class WebhookTests(TestCase):
         body = {"object_type": "activity", "aspect_type": "create",
                 "object_id": 1, "owner_id": 999}
         resp = self.client.post(reverse("core:webhook"), data=json.dumps(body),
+                                content_type="application/json")
+        self.assertEqual(resp.status_code, 200)
+        proc.assert_not_called()
+
+    @patch("core.views.process_account")
+    def test_post_malformed_body_returns_200(self, proc):
+        resp = self.client.post(reverse("core:webhook"), data=b"not json",
                                 content_type="application/json")
         self.assertEqual(resp.status_code, 200)
         proc.assert_not_called()
