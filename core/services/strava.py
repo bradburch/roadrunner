@@ -55,3 +55,11 @@ def update_description(access_token: str, activity_id: int, description: str) ->
         data={"description": description}, timeout=30,
     )
     return resp.status_code
+
+
+def get_activity_raw_description(access_token: str, activity_id: int) -> str:
+    resp = requests.get(
+        f"{_API}activities/{activity_id}",
+        headers={"Authorization": f"Bearer {access_token}"}, timeout=30,
+    )
+    return resp.json().get("description") or ""

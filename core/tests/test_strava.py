@@ -47,3 +47,8 @@ class StravaTests(SimpleTestCase):
         put.return_value = _resp({}, status=200)
         self.assertEqual(strava.update_description("a", 5, "desc"), 200)
         self.assertEqual(put.call_args.kwargs["data"]["description"], "desc")
+
+    @patch("core.services.strava.requests.get")
+    def test_get_activity_raw_description(self, get):
+        get.return_value = _resp({"description": "hi"})
+        self.assertEqual(strava.get_activity_raw_description("a", 5), "hi")
