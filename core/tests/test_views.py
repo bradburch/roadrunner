@@ -157,3 +157,16 @@ class WebhookTests(TestCase):
                                 content_type="application/json")
         self.assertEqual(resp.status_code, 200)
         proc.assert_not_called()
+
+    @patch("core.views.process_account", side_effect=Exception("boom"))
+    def test_post_processing_error_still_returns_200(self, proc):
+        user = User.objects.create(username="8")
+        Profile.objects.create(
+            user=user, strava_athlete_id=8, access_token="a", refresh_token="r",
+            expires_at=dj_timezone.now() + timedelta(hours=1), ebird_profile_id="P",
+        )
+        body = {"object_type": "activity", "aspect_type": "create",
+                "object_id": 55, "owner_id": 8}
+        resp = self.client.post(reverse("core:webhook"), data=json.dumps(body),
+                                content_type="application/json")
+        self.assertEqual(resp.status_code, 200)

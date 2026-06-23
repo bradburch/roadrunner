@@ -62,3 +62,13 @@ EBIRD_API_TOKEN = os.environ.get("EBIRD_API_TOKEN", "")
 STRAVA_CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID", "")
 STRAVA_CLIENT_SECRET = os.environ.get("STRAVA_CLIENT_SECRET", "")
 STRAVA_WEBHOOK_VERIFY_TOKEN = os.environ.get("STRAVA_WEBHOOK_VERIFY_TOKEN", "")
+
+if not DEBUG:
+    # Behind Vercel's TLS-terminating proxy, trust the forwarded scheme so
+    # request.is_secure()/build_absolute_uri() and CSRF origin checks see https.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True

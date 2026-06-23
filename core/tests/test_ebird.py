@@ -41,3 +41,9 @@ class EbirdTests(SimpleTestCase):
         get.return_value = _resp([{"speciesCode": "amerob", "comName": "American Robin"}])
         obs = [{"speciesCode": "amerob", "howManyStr": "3"}]
         self.assertEqual(ebird.build_bird_dict(obs), {"American Robin": "3"})
+
+    @patch("core.services.ebird.requests.get")
+    def test_build_bird_dict_empty_returns_empty(self, get):
+        result = ebird.build_bird_dict([])
+        self.assertEqual(result, {})
+        get.assert_not_called()

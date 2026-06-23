@@ -32,6 +32,8 @@ def get_dates_observation(id_date: IdDates) -> tuple:
 
 
 def build_bird_dict(observation: list[dict]) -> dict:
+    if not observation:
+        return {}
     code_num = {o["speciesCode"]: o["howManyStr"] for o in observation}
     taxonomy = _get_taxonomy(list(code_num))
     code_name = {t["speciesCode"]: t["comName"] for t in taxonomy}

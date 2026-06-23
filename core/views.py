@@ -1,4 +1,5 @@
 import json
+import logging
 import secrets
 from datetime import datetime, timezone
 from django.conf import settings
@@ -14,6 +15,8 @@ from urllib.parse import urlencode
 from .models import Profile
 from .services import strava
 from .services.sync import process_account
+
+logger = logging.getLogger(__name__)
 
 STRAVA_AUTH_URL = "https://www.strava.com/oauth/authorize"
 
@@ -110,5 +113,8 @@ def webhook(request):
     if event.get("object_type") == "activity" and event.get("aspect_type") in ("create", "update"):
         profile = Profile.objects.filter(strava_athlete_id=event.get("owner_id")).first()
         if profile and profile.ebird_profile_id:
-            process_account(profile, [event["object_id"]])
+            try:
+                process_account(profile, [event["object_id"]])
+            except Exception:
+                logger.exception("Webhook processing failed for athlete %s", event.get("owner_id"))
     return JsonResponse({"status": "ok"})

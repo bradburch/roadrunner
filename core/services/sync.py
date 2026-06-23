@@ -18,7 +18,7 @@ def ensure_fresh_token(profile: Profile) -> str:
 def process_account(profile: Profile, activity_ids: list[int] | None = None) -> list[int]:
     access = ensure_fresh_token(profile)
 
-    if activity_ids:
+    if activity_ids is not None:
         activities = [strava.get_activity(access, i) for i in activity_ids]
     else:
         activities = strava.get_recent_activities(access)
