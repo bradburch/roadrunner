@@ -1,2 +1,17 @@
 *.ini
 __pycache__/
+.env
+config.ini
+db.sqlite3
+.venv/
+*.pyc
+.vercel
+
+# Node artifacts from a local `npm install vercel` — not part of this Python app
+node_modules/
+package.json
+package-lock.json
+
+# Playwright/screenshot artifacts
+.playwright-mcp/
+*.png
