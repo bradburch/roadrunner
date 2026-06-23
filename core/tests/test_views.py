@@ -167,6 +167,7 @@ class WebhookTests(TestCase):
         )
         body = {"object_type": "activity", "aspect_type": "create",
                 "object_id": 55, "owner_id": 8}
-        resp = self.client.post(reverse("core:webhook"), data=json.dumps(body),
-                                content_type="application/json")
+        with self.assertLogs("core.views", level="ERROR"):
+            resp = self.client.post(reverse("core:webhook"), data=json.dumps(body),
+                                    content_type="application/json")
         self.assertEqual(resp.status_code, 200)
