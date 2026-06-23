@@ -2,7 +2,7 @@
 {% block content %}
 <p class="who">Connected as
    <a href="https://www.strava.com/athletes/{{ profile.strava_athlete_id }}" target="_blank" rel="noopener"><b>{{ user.get_full_name|default:"your Strava account" }}</b></a>
-   · Strava athlete {{ profile.strava_athlete_id }}</p>
+   · Strava athlete <em>{{ profile.strava_athlete_id }}</em></p>
 
 {% include "core/_about.html" %}
 
@@ -18,8 +18,10 @@
   {% if profile.ebird_profile_id %}<a class="note" style="margin-left:.7rem" href="https://ebird.org/profile/{{ profile.ebird_profile_id }}" target="_blank" rel="noopener">View your eBird profile&nbsp;↗</a>{% endif %}
   <p class="note" style="margin:.7rem 0 0">
     Find this in your eBird profile URL, right after <code>/profile/</code> —
-    e.g. <code>ebird.org/profile/<b>AbCdEf1234</b></code>. Your eBird profile
-    <em>must</em> be <strong>public</strong> for this to work; you can change that
+    e.g. <code>ebird.org/profile/<b>AbCdEf1234</b></code>. 
+    </p>
+  <p class="note" style="margin:.7rem 0 0">
+    Your eBird profile <em>must</em> be <strong>public</strong> for this to work; you can change that
     in your eBird account settings.
   </p>
 </form>
