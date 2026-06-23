@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import HttpResponseBadRequest
@@ -69,6 +70,7 @@ def dashboard(request):
 
 
 @login_required
+@require_POST
 def ebird_profile(request):
     profile = request.user.profile
     profile.ebird_profile_id = request.POST.get("ebird_profile_id", "").strip()
@@ -78,6 +80,7 @@ def ebird_profile(request):
 
 
 @login_required
+@require_POST
 def sync_now(request):
     profile = request.user.profile
     if not profile.ebird_profile_id:

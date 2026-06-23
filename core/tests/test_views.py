@@ -91,3 +91,20 @@ class DashboardTests(TestCase):
         resp = self.client.post(reverse("core:sync"))
         self.assertEqual(resp.status_code, 302)
         proc.assert_called_once()
+
+    def test_ebird_profile_rejects_get(self):
+        self._login()
+        resp = self.client.get(reverse("core:ebird_profile"))
+        self.assertEqual(resp.status_code, 405)
+
+    def test_sync_rejects_get(self):
+        self._login()
+        resp = self.client.get(reverse("core:sync"))
+        self.assertEqual(resp.status_code, 405)
+
+    @patch("core.views.process_account")
+    def test_sync_skips_when_no_ebird_id(self, proc):
+        self._login()
+        resp = self.client.post(reverse("core:sync"))
+        self.assertEqual(resp.status_code, 302)
+        proc.assert_not_called()
