@@ -90,16 +90,16 @@ class DashboardTests(TestCase):
 
     def test_save_ebird_profile_trims_and_preserves_case(self):
         self._login()
-        self.client.post(reverse("core:ebird_profile"), {"ebird_profile_id": "  MzkyNjAwNA  "})
-        self.assertEqual(Profile.objects.get(strava_athlete_id=7).ebird_profile_id, "MzkyNjAwNA")
+        self.client.post(reverse("core:ebird_profile"), {"ebird_profile_id": "  AbCdEf1234  "})
+        self.assertEqual(Profile.objects.get(strava_athlete_id=7).ebird_profile_id, "AbCdEf1234")
 
     def test_save_ebird_profile_extracts_id_from_url(self):
         self._login()
         self.client.post(
             reverse("core:ebird_profile"),
-            {"ebird_profile_id": "https://ebird.org/profile/MzkyNjAwNA"},
+            {"ebird_profile_id": "https://ebird.org/profile/AbCdEf1234"},
         )
-        self.assertEqual(Profile.objects.get(strava_athlete_id=7).ebird_profile_id, "MzkyNjAwNA")
+        self.assertEqual(Profile.objects.get(strava_athlete_id=7).ebird_profile_id, "AbCdEf1234")
 
     def test_save_ebird_profile_rejects_invalid(self):
         self._login()
