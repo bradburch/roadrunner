@@ -3,7 +3,8 @@ from datetime import datetime, timezone
 from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.models import User
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.contrib import messages
+from django.http import HttpResponseBadRequest
 from django.shortcuts import redirect, render
 from urllib.parse import urlencode
 from .models import Profile
@@ -30,8 +31,15 @@ def connect(request):
 
 
 def callback(request):
+    if request.GET.get("error"):
+        messages.error(request, "Strava authorization was cancelled.")
+        return redirect("core:landing")
+
     if request.GET.get("state") != request.session.get("oauth_state"):
         return HttpResponseBadRequest("Invalid OAuth state")
+
+    request.session.pop("oauth_state", None)
+
     code = request.GET.get("code")
     if not code:
         return HttpResponseBadRequest("Missing code")

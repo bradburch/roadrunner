@@ -28,6 +28,25 @@ class OAuthViewTests(TestCase):
         self.assertTrue(Profile.objects.filter(strava_athlete_id=7).exists())
         self.assertIn("_auth_user_id", self.client.session)
 
+    @patch("core.views.strava.exchange_code")
+    def test_callback_consumes_state(self, exchange):
+        exchange.return_value = {
+            "access_token": "a", "refresh_token": "r",
+            "expires_at": int(datetime.now(tz=timezone.utc).timestamp()) + 3600,
+            "athlete": {"id": 42, "firstname": "Road", "lastname": "Runner"},
+        }
+        session = self.client.session
+        session["oauth_state"] = "abc"
+        session.save()
+        self.client.get(reverse("core:callback"), {"code": "C", "state": "abc"})
+        self.assertNotIn("oauth_state", self.client.session)
+
+    def test_callback_handles_user_cancel(self):
+        resp = self.client.get(reverse("core:callback"), {"error": "access_denied"})
+        self.assertEqual(resp.status_code, 302)
+        self.assertRedirects(resp, reverse("core:landing"))
+        self.assertFalse(Profile.objects.exists())
+
     def test_callback_rejects_bad_state(self):
         session = self.client.session
         session["oauth_state"] = "right"
