@@ -68,3 +68,14 @@ curl -X POST https://www.strava.com/api/v3/push_subscriptions \
 ```
 
 This step is completed after live deploy when your callback URL is reachable.
+
+## Roadmap / TODO
+
+- **Deferred re-check for late checklists.** Today, when a Strava activity is
+  created/updated the webhook checks for an overlapping eBird checklist *at that
+  moment* — so if the checklist hasn't been saved yet, the activity is never
+  updated. Add a scheduled job that, for an activity that had **no** matching
+  checklist, re-checks **2, 4, and 8 hours** after the activity was updated, and
+  fills in the birds if a checklist has since been saved. (Requires persisting
+  per-activity sync state and a scheduler — e.g. Vercel Cron draining a small
+  queue.)
