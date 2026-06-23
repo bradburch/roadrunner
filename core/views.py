@@ -1,4 +1,4 @@
-import json as _json
+import json
 import secrets
 from datetime import datetime, timezone
 from django.conf import settings
@@ -104,8 +104,8 @@ def webhook(request):
         return JsonResponse({"hub.challenge": request.GET.get("hub.challenge")})
 
     try:
-        event = _json.loads(request.body or b"{}")
-    except _json.JSONDecodeError:
+        event = json.loads(request.body or b"{}")
+    except json.JSONDecodeError:
         event = {}
     if event.get("object_type") == "activity" and event.get("aspect_type") in ("create", "update"):
         profile = Profile.objects.filter(strava_athlete_id=event.get("owner_id")).first()
