@@ -10,6 +10,7 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import HttpResponseBadRequest, JsonResponse, HttpResponseForbidden
 from django.shortcuts import redirect, render
+from django.utils import timezone as dj_timezone
 from django.views.decorators.csrf import csrf_exempt
 from urllib.parse import urlencode
 from .models import Profile
@@ -19,6 +20,7 @@ from .services.sync import process_account
 logger = logging.getLogger(__name__)
 
 STRAVA_AUTH_URL = "https://www.strava.com/oauth/authorize"
+WEBHOOK_COOLDOWN_SECONDS = 30
 
 
 def landing(request):
@@ -113,6 +115,13 @@ def webhook(request):
     if event.get("object_type") == "activity" and event.get("aspect_type") in ("create", "update"):
         profile = Profile.objects.filter(strava_athlete_id=event.get("owner_id")).first()
         if profile and profile.ebird_profile_id:
+            if (
+                profile.last_webhook_at is not None
+                and (dj_timezone.now() - profile.last_webhook_at).total_seconds() < WEBHOOK_COOLDOWN_SECONDS
+            ):
+                return JsonResponse({"status": "throttled"})
+            profile.last_webhook_at = dj_timezone.now()
+            profile.save(update_fields=["last_webhook_at"])
             try:
                 process_account(profile, [event["object_id"]])
             except Exception:

@@ -10,6 +10,7 @@ class Profile(models.Model):
     refresh_token = models.CharField(max_length=255)
     expires_at = models.DateTimeField()
     ebird_profile_id = models.CharField(max_length=64, blank=True)
+    last_webhook_at = models.DateTimeField(null=True, blank=True)
 
     def token_expired(self) -> bool:
         return self.expires_at <= timezone.now()

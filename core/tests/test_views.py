@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils import timezone as dj_timezone
 from django.contrib.auth.models import User
 from core.models import Profile
+from core.views import WEBHOOK_COOLDOWN_SECONDS
 
 
 class OAuthViewTests(TestCase):
@@ -171,3 +172,37 @@ class WebhookTests(TestCase):
             resp = self.client.post(reverse("core:webhook"), data=json.dumps(body),
                                     content_type="application/json")
         self.assertEqual(resp.status_code, 200)
+
+    @patch("core.views.process_account")
+    def test_webhook_throttled_when_recent(self, proc):
+        user = User.objects.create(username="9")
+        Profile.objects.create(
+            user=user, strava_athlete_id=9, access_token="a", refresh_token="r",
+            expires_at=dj_timezone.now() + timedelta(hours=1), ebird_profile_id="P",
+            last_webhook_at=dj_timezone.now(),
+        )
+        body = {"object_type": "activity", "aspect_type": "create",
+                "object_id": 77, "owner_id": 9}
+        resp = self.client.post(reverse("core:webhook"), data=json.dumps(body),
+                                content_type="application/json")
+        self.assertEqual(resp.status_code, 200)
+        proc.assert_not_called()
+
+    @patch("core.views.process_account", return_value=[77])
+    def test_webhook_processes_after_cooldown(self, proc):
+        user = User.objects.create(username="10")
+        profile = Profile.objects.create(
+            user=user, strava_athlete_id=10, access_token="a", refresh_token="r",
+            expires_at=dj_timezone.now() + timedelta(hours=1), ebird_profile_id="P",
+            last_webhook_at=dj_timezone.now() - timedelta(seconds=WEBHOOK_COOLDOWN_SECONDS + 5),
+        )
+        old_last_webhook_at = profile.last_webhook_at
+        body = {"object_type": "activity", "aspect_type": "create",
+                "object_id": 77, "owner_id": 10}
+        resp = self.client.post(reverse("core:webhook"), data=json.dumps(body),
+                                content_type="application/json")
+        self.assertEqual(resp.status_code, 200)
+        proc.assert_called_once()
+        self.assertEqual(list(proc.call_args.args[1]), [77])
+        profile.refresh_from_db()
+        self.assertGreater(profile.last_webhook_at, old_last_webhook_at)
