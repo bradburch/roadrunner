@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 import dj_database_url
 from roadrunner.envfile import load_dotenv
@@ -56,6 +57,11 @@ DATABASES = {
         conn_max_age=0,  # serverless: do not persist connections
     )
 }
+
+# Never run the test suite against the real (e.g. Neon) database — use a local
+# in-memory SQLite db regardless of DATABASE_URL.
+if sys.argv[1:2] == ["test"]:
+    DATABASES["default"] = {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}
 
 STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import secrets
 from datetime import datetime, timezone
 from django.conf import settings
@@ -11,6 +12,7 @@ from django.contrib import messages
 from django.http import HttpResponseBadRequest, JsonResponse, HttpResponseForbidden
 from django.shortcuts import redirect, render
 from django.utils import timezone as dj_timezone
+from django.utils.html import format_html, format_html_join
 from django.views.decorators.csrf import csrf_exempt
 from urllib.parse import urlencode
 from .models import Profile
@@ -57,6 +59,10 @@ def callback(request):
     data = strava.exchange_code(code)
     athlete = data["athlete"]
     user, _ = User.objects.get_or_create(username=str(athlete["id"]))
+    # Strava returns the athlete's name in the token response; keep it fresh.
+    user.first_name = (athlete.get("firstname") or "")[:150]
+    user.last_name = (athlete.get("lastname") or "")[:150]
+    user.save(update_fields=["first_name", "last_name"])
     Profile.objects.update_or_create(
         strava_athlete_id=athlete["id"],
         defaults={
@@ -80,7 +86,17 @@ def dashboard(request):
 @require_POST
 def ebird_profile(request):
     profile = request.user.profile
-    profile.ebird_profile_id = request.POST.get("ebird_profile_id", "").strip()
+    raw = request.POST.get("ebird_profile_id", "").strip()
+    # Accept a pasted profile URL by keeping only the ID segment after /profile/.
+    if "/profile/" in raw:
+        raw = raw.split("/profile/", 1)[1]
+    profile_id = raw.strip("/").split("?", 1)[0].split("/", 1)[0].strip()
+    # eBird profile IDs are case-sensitive base64-ish tokens — validate without
+    # altering case.
+    if not re.fullmatch(r"[A-Za-z0-9_-]{4,64}", profile_id):
+        messages.error(request, "That doesn't look like a valid eBird profile ID.")
+        return redirect("core:dashboard")
+    profile.ebird_profile_id = profile_id
     profile.save(update_fields=["ebird_profile_id"])
     messages.success(request, "eBird profile saved.")
     return redirect("core:dashboard")
@@ -95,7 +111,14 @@ def sync_now(request):
         return redirect("core:dashboard")
     updated = process_account(profile)
     if updated:
-        messages.success(request, f"Updated {len(updated)} activity(ies).")
+        links = format_html_join(
+            ", ",
+            '<a href="https://www.strava.com/activities/{0}" target="_blank" rel="noopener">{0}</a>',
+            ((activity_id,) for activity_id in updated),
+        )
+        messages.success(
+            request, format_html("Updated {} activity(ies): {}", len(updated), links)
+        )
     else:
         messages.info(request, "No matching checklists found for recent activities.")
     return redirect("core:dashboard")

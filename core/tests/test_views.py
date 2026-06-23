@@ -31,6 +31,9 @@ class OAuthViewTests(TestCase):
         self.assertEqual(resp.status_code, 302)
         self.assertTrue(Profile.objects.filter(strava_athlete_id=7).exists())
         self.assertIn("_auth_user_id", self.client.session)
+        user = User.objects.get(username="7")
+        self.assertEqual(user.first_name, "Wile")
+        self.assertEqual(user.last_name, "Coyote")
 
     @patch("core.views.strava.exchange_code")
     def test_callback_consumes_state(self, exchange):
@@ -85,6 +88,27 @@ class DashboardTests(TestCase):
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(Profile.objects.get(strava_athlete_id=7).ebird_profile_id, "ABC123")
 
+    def test_save_ebird_profile_trims_and_preserves_case(self):
+        self._login()
+        self.client.post(reverse("core:ebird_profile"), {"ebird_profile_id": "  MzkyNjAwNA  "})
+        self.assertEqual(Profile.objects.get(strava_athlete_id=7).ebird_profile_id, "MzkyNjAwNA")
+
+    def test_save_ebird_profile_extracts_id_from_url(self):
+        self._login()
+        self.client.post(
+            reverse("core:ebird_profile"),
+            {"ebird_profile_id": "https://ebird.org/profile/MzkyNjAwNA"},
+        )
+        self.assertEqual(Profile.objects.get(strava_athlete_id=7).ebird_profile_id, "MzkyNjAwNA")
+
+    def test_save_ebird_profile_rejects_invalid(self):
+        self._login()
+        resp = self.client.post(
+            reverse("core:ebird_profile"), {"ebird_profile_id": "not a valid id!"}, follow=True
+        )
+        self.assertEqual(Profile.objects.get(strava_athlete_id=7).ebird_profile_id, "")
+        self.assertContains(resp, "valid eBird profile ID")
+
     @patch("core.views.process_account", return_value=[99])
     def test_sync_invokes_process_account(self, proc):
         user = self._login()
@@ -93,6 +117,15 @@ class DashboardTests(TestCase):
         resp = self.client.post(reverse("core:sync"))
         self.assertEqual(resp.status_code, 302)
         proc.assert_called_once()
+
+    @patch("core.views.process_account", return_value=[99, 100])
+    def test_sync_message_links_updated_activities(self, proc):
+        user = self._login()
+        user.profile.ebird_profile_id = "ABC123"
+        user.profile.save(update_fields=["ebird_profile_id"])
+        resp = self.client.post(reverse("core:sync"), follow=True)
+        self.assertContains(resp, "https://www.strava.com/activities/99")
+        self.assertContains(resp, "https://www.strava.com/activities/100")
 
     def test_ebird_profile_rejects_get(self):
         self._login()

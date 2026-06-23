@@ -14,7 +14,7 @@
 </head>
 <body>
   <h1>🦅 Roadrunner</h1>
-  {% if messages %}{% for m in messages %}<p class="msg">{{ m }}</p>{% endfor %}{% endif %}
+  {% if messages %}{% for m in messages %}<p class="msg">{{ m|safe }}</p>{% endfor %}{% endif %}
   {% block content %}{% endblock %}
 </body>
 </html>
