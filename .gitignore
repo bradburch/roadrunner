@@ -1,2 +1,8 @@
 *.ini
 __pycache__/
+.env
+config.ini
+db.sqlite3
+.venv/
+__pycache__/
+*.pyc
