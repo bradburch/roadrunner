@@ -62,6 +62,17 @@ class OAuthViewTests(TestCase):
         self.assertEqual(resp.status_code, 400)
 
 
+class LandingTests(TestCase):
+    def test_landing_shows_about_box(self):
+        resp = self.client.get(reverse("core:landing"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "What Roadrunner does")
+
+    def test_landing_has_no_leaked_template_comment(self):
+        resp = self.client.get(reverse("core:landing"))
+        self.assertNotContains(resp, "SAFETY")
+
+
 class DashboardTests(TestCase):
     def _login(self):
         user = User.objects.create(username="7")

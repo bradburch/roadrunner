@@ -112,6 +112,8 @@ def sync_now(request):
         return redirect("core:dashboard")
     updated = process_account(profile)
     if updated:
+        # base.html renders messages with |safe, so HTML must come from
+        # format_html (escapes args); never pass raw user input into a message.
         links = format_html_join(
             ", ",
             '<a href="https://www.strava.com/activities/{0}" target="_blank" rel="noopener">{0}</a>',

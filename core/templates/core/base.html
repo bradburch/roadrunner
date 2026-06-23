@@ -14,8 +14,6 @@
 </head>
 <body>
   <h1>🦅 Roadrunner</h1>
-  {# SAFETY: messages render unescaped, so every message added in views.py MUST be
-     a static literal or built with format_html() — never interpolate raw user input. #}
   {% if messages %}{% for m in messages %}<p class="msg">{{ m|safe }}</p>{% endfor %}{% endif %}
   {% block content %}{% endblock %}
 </body>

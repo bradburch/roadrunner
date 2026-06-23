@@ -3,29 +3,7 @@
 <p>Connected as <strong>{{ user.get_full_name|default:"your Strava account" }}</strong>
    (Strava athlete {{ profile.strava_athlete_id }}).</p>
 
-<section style="background:#f7f7f9;border-radius:8px;padding:1rem 1.25rem;margin:1rem 0">
-  <h2 style="margin-top:0;font-size:1.1rem">What Roadrunner does</h2>
-  <p style="margin:.4rem 0">
-    Roadrunner adds the birds you logged on eBird to the Strava activity you
-    logged them during. When a Strava activity's time window overlaps an eBird
-    checklist, your activity description gets a tidy list of the species and
-    counts from that checklist.
-  </p>
-  <ol style="margin:.4rem 0 .2rem 1.1rem;padding:0">
-    <li>It reads your most recent Strava activities and recent eBird checklists.</li>
-    <li>It matches them by overlapping date and time.</li>
-    <li>For each match, it writes a <em>“Birds seen during activity”</em> block
-        into the Strava description (existing text is kept; re-syncing never
-        duplicates it).</li>
-  </ol>
-  <p style="margin:.4rem 0 0;color:#555;font-size:.92rem">
-    Heads up: only eBird checklists <strong>with a recorded duration</strong> can
-    be matched (incidental observations without a duration are skipped). New
-    activities are also picked up automatically a short time after you save them
-    on Strava — or use <strong>Sync now</strong> to check your latest activities
-    immediately.
-  </p>
-</section>
+{% include "core/_about.html" %}
 
 <form method="post" action="{% url 'core:ebird_profile' %}">
   {% csrf_token %}
