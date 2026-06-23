@@ -1,26 +1,30 @@
 {% extends "core/base.html" %}
 {% block content %}
-<p>Connected as <strong>{{ user.get_full_name|default:"your Strava account" }}</strong>
-   (Strava athlete {{ profile.strava_athlete_id }}).</p>
+<p class="who">Connected as <b>{{ user.get_full_name|default:"your Strava account" }}</b>
+   · Strava athlete {{ profile.strava_athlete_id }}</p>
 
 {% include "core/_about.html" %}
 
-<form method="post" action="{% url 'core:ebird_profile' %}">
+<form method="post" action="{% url 'core:ebird_profile' %}" class="panel">
   {% csrf_token %}
-  <label>eBird profile ID
-    <input name="ebird_profile_id" value="{{ profile.ebird_profile_id }}" placeholder="e.g. <PROFILE_ID>" required>
-  </label>
-  <button class="btn" type="submit">Save</button>
-  <p style="margin:.35rem 0 0;color:#555;font-size:.88rem">
+  <p class="eyebrow">Your eBird profile</p>
+  <div class="field">
+    <label for="ebird_profile_id">eBird Profile ID</label>
+    <input class="input" id="ebird_profile_id" name="ebird_profile_id"
+           value="{{ profile.ebird_profile_id }}" placeholder="e.g. AbCdEf1234" required>
+  </div>
+  <button class="btn btn--ghost" type="submit">Save</button>
+  <p class="note" style="margin:.7rem 0 0">
     Find this in your eBird profile URL, right after <code>/profile/</code> —
-    e.g. <code>ebird.org/profile/<strong>AbCdEf1234</strong></code>. Your eBird
-    profile must be public.
+    e.g. <code>ebird.org/profile/<b>AbCdEf1234</b></code>. Your eBird profile
+    <em>must</em> be <strong>public</strong> for this to work; you can change that
+    in your eBird account settings.
   </p>
 </form>
 
-<form method="post" action="{% url 'core:sync' %}" style="margin-top:1.25rem">
+<form method="post" action="{% url 'core:sync' %}">
   {% csrf_token %}
-  <button class="btn" type="submit">Sync now</button>
-  <span style="margin-left:.6rem;color:#555;font-size:.88rem">Checks your most recent Strava activities now.</span>
+  <button class="btn btn--primary" type="submit">Sync now</button>
+  <span class="note" style="margin-left:.7rem">Checks your most recent Strava activities now.</span>
 </form>
 {% endblock %}
