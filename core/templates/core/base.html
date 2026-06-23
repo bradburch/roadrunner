@@ -13,7 +13,7 @@
   </style>
 </head>
 <body>
-  <h1>🦅 Roadrunner</h1>
+  <h1><a href="{% url 'core:landing' %}" style="color:inherit;text-decoration:none">🦅 Roadrunner</a></h1>
   {% if messages %}{% for m in messages %}<p class="msg">{{ m|safe }}</p>{% endfor %}{% endif %}
   {% block content %}{% endblock %}
 </body>
