@@ -11,3 +11,7 @@ db.sqlite3
 node_modules/
 package.json
 package-lock.json
+
+# Playwright/screenshot artifacts
+.playwright-mcp/
+*.png

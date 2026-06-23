@@ -1,6 +1,7 @@
 {% extends "core/base.html" %}
 {% block content %}
-<p class="who">Connected as <b>{{ user.get_full_name|default:"your Strava account" }}</b>
+<p class="who">Connected as
+   <a href="https://www.strava.com/athletes/{{ profile.strava_athlete_id }}" target="_blank" rel="noopener"><b>{{ user.get_full_name|default:"your Strava account" }}</b></a>
    · Strava athlete {{ profile.strava_athlete_id }}</p>
 
 {% include "core/_about.html" %}
