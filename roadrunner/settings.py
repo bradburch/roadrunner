@@ -1,8 +1,13 @@
 import os
 from pathlib import Path
 import dj_database_url
+from roadrunner.envfile import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load a local .env for development (no-op in production, where real env vars
+# are set by the platform and take precedence).
+load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-insecure-key-change-me")
 DEBUG = os.environ.get("DEBUG", "False") == "True"
