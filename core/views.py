@@ -92,3 +92,23 @@ def sync_now(request):
     else:
         messages.info(request, "No matching checklists found for recent activities.")
     return redirect("core:dashboard")
+
+
+import json as _json
+from django.http import JsonResponse, HttpResponseForbidden
+from django.views.decorators.csrf import csrf_exempt
+
+
+@csrf_exempt
+def webhook(request):
+    if request.method == "GET":
+        if request.GET.get("hub.verify_token") != settings.STRAVA_WEBHOOK_VERIFY_TOKEN:
+            return HttpResponseForbidden("bad verify token")
+        return JsonResponse({"hub.challenge": request.GET.get("hub.challenge")})
+
+    event = _json.loads(request.body or b"{}")
+    if event.get("object_type") == "activity" and event.get("aspect_type") in ("create", "update"):
+        profile = Profile.objects.filter(strava_athlete_id=event.get("owner_id")).first()
+        if profile and profile.ebird_profile_id:
+            process_account(profile, [event["object_id"]])
+    return JsonResponse({"status": "ok"})

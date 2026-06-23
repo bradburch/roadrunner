@@ -108,3 +108,47 @@ class DashboardTests(TestCase):
         resp = self.client.post(reverse("core:sync"))
         self.assertEqual(resp.status_code, 302)
         proc.assert_not_called()
+
+
+import json
+
+
+class WebhookTests(TestCase):
+    def test_get_verification_echoes_challenge(self):
+        with self.settings(STRAVA_WEBHOOK_VERIFY_TOKEN="vt"):
+            resp = self.client.get(reverse("core:webhook"), {
+                "hub.mode": "subscribe", "hub.verify_token": "vt", "hub.challenge": "abc",
+            })
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json(), {"hub.challenge": "abc"})
+
+    def test_get_verification_rejects_bad_token(self):
+        with self.settings(STRAVA_WEBHOOK_VERIFY_TOKEN="vt"):
+            resp = self.client.get(reverse("core:webhook"), {
+                "hub.mode": "subscribe", "hub.verify_token": "nope", "hub.challenge": "abc",
+            })
+        self.assertEqual(resp.status_code, 403)
+
+    @patch("core.views.process_account", return_value=[99])
+    def test_post_create_event_processes_owner(self, proc):
+        user = User.objects.create(username="7")
+        Profile.objects.create(
+            user=user, strava_athlete_id=7, access_token="a", refresh_token="r",
+            expires_at=dj_timezone.now() + timedelta(hours=1), ebird_profile_id="P",
+        )
+        body = {"object_type": "activity", "aspect_type": "create",
+                "object_id": 99, "owner_id": 7}
+        resp = self.client.post(reverse("core:webhook"), data=json.dumps(body),
+                                content_type="application/json")
+        self.assertEqual(resp.status_code, 200)
+        proc.assert_called_once()
+        self.assertEqual(list(proc.call_args.args[1]), [99])
+
+    @patch("core.views.process_account")
+    def test_post_unknown_owner_is_noop_200(self, proc):
+        body = {"object_type": "activity", "aspect_type": "create",
+                "object_id": 1, "owner_id": 999}
+        resp = self.client.post(reverse("core:webhook"), data=json.dumps(body),
+                                content_type="application/json")
+        self.assertEqual(resp.status_code, 200)
+        proc.assert_not_called()
