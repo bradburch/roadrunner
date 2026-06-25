@@ -1,7 +1,19 @@
+import logging
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from django.utils import timezone as djtz
 from ..models import Profile
-from . import ebird, strava, matching
+from . import ebird, inaturalist, strava, matching
+
+logger = logging.getLogger(__name__)
+
+
+def _safe_collect(collect, source_id, activities) -> dict:
+    try:
+        return collect(source_id, activities)
+    except Exception:
+        logger.exception("Source %s failed", collect.__module__)
+        return {}
 
 
 def ensure_fresh_token(profile: Profile) -> str:
@@ -23,20 +35,26 @@ def process_account(profile: Profile, activity_ids: list[int] | None = None) -> 
     else:
         activities = strava.get_recent_activities(access)
 
-    checklists = ebird.get_recent_checklists(profile.ebird_profile_id)
-    activity_species: dict[int, dict] = {}
+    sources = []
+    if profile.ebird_profile_id:
+        sources.append((ebird.collect_species, profile.ebird_profile_id))
+    if profile.inaturalist_user_id:
+        sources.append((inaturalist.collect_species, profile.inaturalist_user_id))
 
-    for checklist in checklists:
-        end, obs = ebird.get_dates_observation(checklist)
-        if end is None:
-            continue
-        checklist.end_date, checklist.obs = end, obs
-        for activity in activities:
-            if matching.compare(activity, checklist):
-                bird_dict = ebird.build_bird_dict(checklist.obs)
-                existing = activity_species.get(activity.identifier)
-                activity_species[activity.identifier] = (
-                    matching.add_dict(existing, bird_dict) if existing else bird_dict
+    # Fan out concurrently; requests releases the GIL during I/O so the calls
+    # overlap. Each source is isolated — a failing one yields {} and never blocks
+    # the others. Token refresh already ran on this thread; collectors do no ORM.
+    activity_species: dict[int, dict] = {}
+    if sources:
+        with ThreadPoolExecutor(max_workers=len(sources)) as pool:
+            results = list(pool.map(
+                lambda s: _safe_collect(s[0], s[1], activities), sources
+            ))
+        for per_activity in results:
+            for activity_id, species in per_activity.items():
+                existing = activity_species.get(activity_id)
+                activity_species[activity_id] = (
+                    matching.add_dict(existing, species) if existing else species
                 )
 
     updated = []
