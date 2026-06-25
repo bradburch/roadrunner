@@ -1,6 +1,6 @@
 # Roadrunner
 
-A multi-user web app that writes the birds from your eBird checklists into your overlapping Strava activity descriptions. Users log in with Strava and link an eBird profile ID.
+A multi-user web app that writes the species from your eBird and iNaturalist observations into your overlapping Strava activity descriptions. Users log in with Strava and link an eBird profile ID, an iNaturalist username, or both (iNaturalist reads need no API key).
 
 ## Environment Variables
 

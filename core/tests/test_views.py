@@ -72,6 +72,11 @@ class LandingTests(TestCase):
         resp = self.client.get(reverse("core:landing"))
         self.assertNotContains(resp, "SAFETY")
 
+    def test_landing_demo_uses_new_header(self):
+        resp = self.client.get(reverse("core:landing"))
+        self.assertContains(resp, "Nature seen during activity:")
+        self.assertNotContains(resp, "Birds seen during activity:")
+
 
 class DashboardTests(TestCase):
     def _login(self):
