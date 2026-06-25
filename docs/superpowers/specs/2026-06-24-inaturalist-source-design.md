@@ -34,6 +34,29 @@ The two sources therefore converge at `activity_species: dict[int, dict]` in
 This is correct precisely because the sources disagree on input shape (windows vs
 points) but agree on output ("species seen during activity N").
 
+## Concurrency and per-source failure isolation
+
+Both sources expose the **same collector interface** so `sync` can treat them
+uniformly:
+
+```
+collect_species(source_id: str, activities: list[IdDates]) -> dict[int, dict[str, str]]
+```
+
+`sync.process_account` fans the two collectors out concurrently with
+`concurrent.futures.ThreadPoolExecutor` (stdlib — no new dependency). `requests`
+releases the GIL during network I/O, so the two collectors' HTTP waits genuinely
+overlap; total latency is the slower source, not the sum. Each collector is
+submitted only if its id is set, and each is wrapped so a failure (exception or
+timeout) is logged and yields `{}` — a broken or slow eBird never blocks the
+iNaturalist result and vice versa. Once both futures resolve, their per-activity
+dicts are merged with `matching.add_dict`.
+
+Thread safety: token refresh (`ensure_fresh_token`, which writes the Profile)
+runs on the main thread **before** fan-out. The collectors read only plain
+attributes (`profile.ebird_profile_id`, `profile.inaturalist_user_id`) and
+`settings`, and make HTTP calls — no Django ORM access inside threads.
+
 ## Components
 
 ### New: `core/services/inaturalist.py` (~50 lines)
@@ -41,6 +64,9 @@ points) but agree on output ("species seen during activity N").
 ```
 collect_species(user_id: str, activities: list[IdDates]) -> dict[int, dict[str, str]]
 ```
+
+Owns iNaturalist fetch + point-in-window matching (returns species keyed by
+activity id), so `sync` never sees iNaturalist's per-observation shape.
 
 - Single request: `GET https://api.inaturalist.org/v1/observations` with params
   `user_id`, `d1`/`d2` (min/max activity date), `per_page=200`,
@@ -58,15 +84,29 @@ collect_species(user_id: str, activities: list[IdDates]) -> dict[int, dict[str, 
 - All quality grades included (research-grade, needs-ID, casual): the user saw it
   on their activity regardless of community confirmation.
 
+### `core/services/ebird.py`
+
+Add `collect_species(profile_id, activities) -> dict[int, dict[str, str]]` — the
+matcher loop currently inlined in `sync.process_account` (fetch recent checklists,
+resolve each window via `get_dates_observation`, overlap against activities with
+`matching.compare`, build the species dict). This gives eBird the same collector
+interface as iNaturalist so `sync` can fan both out uniformly. The existing
+`get_recent_checklists` / `get_dates_observation` / `build_bird_dict` stay as its
+internals.
+
 ### `core/services/sync.py`
 
-`process_account` currently calls `ebird.get_recent_checklists` unconditionally.
-Changes:
+`process_account` currently calls `ebird.get_recent_checklists` unconditionally and
+inlines the match loop. Replace that with a concurrent fan-out:
 
-- Guard the eBird loop with `if profile.ebird_profile_id:` (eBird is now optional).
-- After it, add a parallel iNaturalist block, gated on
-  `if profile.inaturalist_user_id:`, that calls `inaturalist.collect_species` and
-  merges each activity's species into `activity_species` via `matching.add_dict`.
+- Build a list of `(collector, source_id)` for the linked sources only —
+  `ebird.collect_species` if `profile.ebird_profile_id`,
+  `inaturalist.collect_species` if `profile.inaturalist_user_id`.
+- Submit each to a `ThreadPoolExecutor`, wrapped so an exception/timeout is logged
+  and returns `{}` (per-source isolation).
+- After both resolve, merge every source's per-activity dict into
+  `activity_species` with `matching.add_dict`.
+- `ensure_fresh_token` still runs first, on the main thread, before fan-out.
 
 ### `core/services/matching.py`
 
@@ -101,23 +141,23 @@ Changes:
 
 ```
 process_account(profile, activity_ids?)
-  ├─ activities = recent (or specified) Strava activities  [windows]
-  ├─ if ebird_profile_id:
-  │     for each checklist window overlapping an activity (compare):
-  │       merge ebird.build_bird_dict(obs)  →  activity_species[act]
-  ├─ if inaturalist_user_id:
-  │     inaturalist.collect_species(user_id, activities)    [point-in-window]
-  │       merge per-activity species (value "")  →  activity_species[act]
+  ├─ ensure_fresh_token(profile)                            [main thread]
+  ├─ activities = recent (or specified) Strava activities   [windows]
+  ├─ concurrent fan-out (ThreadPoolExecutor), linked sources only:
+  │     ├─ ebird.collect_species(ebird_profile_id, activities)      [window overlap]
+  │     └─ inaturalist.collect_species(inat_user_id, activities)    [point-in-window]
+  │     each wrapped: exception/timeout → log + {}
+  ├─ merge every source's dict[act → species] via matching.add_dict → activity_species
   └─ for each activity in activity_species:
         create_bird_description → upsert_block (merged, one block) → Strava update
 ```
 
 ## Error handling
 
-- iNaturalist request uses a timeout (matching existing 30s convention). A failed
-  request should not break a sync that also has eBird data — wrap the iNat block
-  so an exception is logged and skipped, the eBird-derived species still write.
-  (The webhook path already swallows and logs exceptions at the top level.)
+- Both collectors use a timeout (matching the existing 30s convention) and are
+  each wrapped at the fan-out so an exception/timeout is logged and yields `{}`.
+  Either source failing still writes the other source's species. (The webhook path
+  already swallows and logs exceptions at the top level; this is finer-grained.)
 - Observations lacking `time_observed_at` are skipped, not errored.
 - Missing common name falls back to scientific name; an observation with no
   `taxon` at all is skipped.
@@ -131,6 +171,7 @@ process_account(profile, activity_ids?)
   and uncounted entries coexist; `add_dict` count-wins-over-empty; `_BLOCK_RE`
   still matches and replaces an old "Birds seen during activity:" block.
 - `core/tests/test_sync.py`: eBird-only, iNat-only, and both-linked paths; merged
-  block contains species from both sources.
+  block contains species from both sources; **one source raising still writes the
+  other source's species** (per-source isolation).
 - `core/tests/test_views.py`: saving an iNaturalist login (bare and URL forms);
   sync gating when only one source is linked.
