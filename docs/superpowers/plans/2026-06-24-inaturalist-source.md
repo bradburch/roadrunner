@@ -25,31 +25,15 @@
 
 **Files:**
 - Modify: `core/models.py:12`
-- Test: `core/tests/test_models.py`
 
 **Interfaces:**
 - Produces: `Profile.inaturalist_user_id: str` (CharField, `blank=True`, default `""`).
 
-- [ ] **Step 1: Write the failing test**
+No dedicated test — a plain `CharField(blank=True)` is framework behavior, not our
+logic. The field is exercised by Task 6's view tests (save → read). (ponytail:
+don't TDD the framework.)
 
-Add to `core/tests/test_models.py`, inside `ProfileTests`:
-
-```python
-    def test_inaturalist_user_id_defaults_blank(self):
-        self.assertEqual(self._profile().inaturalist_user_id, "")
-
-    def test_inaturalist_user_id_persists(self):
-        p = self._profile(inaturalist_user_id="naturelover")
-        p.refresh_from_db()
-        self.assertEqual(p.inaturalist_user_id, "naturelover")
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `python manage.py test core.tests.test_models -v 2`
-Expected: FAIL — `TypeError`/`FieldError` for unknown `inaturalist_user_id`.
-
-- [ ] **Step 3: Add the field**
+- [ ] **Step 1: Add the field**
 
 In `core/models.py`, add after line 12 (`ebird_profile_id = ...`):
 
@@ -57,20 +41,20 @@ In `core/models.py`, add after line 12 (`ebird_profile_id = ...`):
     inaturalist_user_id = models.CharField(max_length=64, blank=True)
 ```
 
-- [ ] **Step 4: Generate the migration**
+- [ ] **Step 2: Generate the migration**
 
 Run: `python manage.py makemigrations core`
 Expected: creates `core/migrations/000X_profile_inaturalist_user_id.py` adding the field.
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [ ] **Step 3: Run the suite to confirm nothing broke**
 
 Run: `python manage.py test core.tests.test_models -v 2`
-Expected: PASS.
+Expected: PASS (existing tests unaffected).
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add core/models.py core/migrations/ core/tests/test_models.py
+git add core/models.py core/migrations/
 git commit -m "feat: add Profile.inaturalist_user_id field"
 ```
 
@@ -805,13 +789,10 @@ git commit -m "feat: link iNaturalist profile and gate sync on either source"
 
 - [ ] **Step 1: Write the failing tests**
 
-Add to `class LandingTests` in `core/tests/test_views.py`:
+Add to `class LandingTests` in `core/tests/test_views.py` (one test — guards the
+Birds→Nature header migration; the rest of the copy is prose, not logic):
 
 ```python
-    def test_landing_mentions_inaturalist(self):
-        resp = self.client.get(reverse("core:landing"))
-        self.assertContains(resp, "iNaturalist")
-
     def test_landing_demo_uses_new_header(self):
         resp = self.client.get(reverse("core:landing"))
         self.assertContains(resp, "Nature seen during activity:")
