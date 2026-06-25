@@ -105,10 +105,28 @@ def ebird_profile(request):
 
 @login_required
 @require_POST
+def inaturalist_profile(request):
+    profile = request.user.profile
+    raw = request.POST.get("inaturalist_user_id", "").strip()
+    # Accept a pasted profile URL by keeping only the login after /people/.
+    if "/people/" in raw:
+        raw = raw.split("/people/", 1)[1]
+    user_id = raw.strip("/").split("?", 1)[0].split("/", 1)[0].strip()
+    if user_id and not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", user_id):
+        messages.error(request, "That doesn't look like a valid iNaturalist username.")
+        return redirect("core:dashboard")
+    profile.inaturalist_user_id = user_id
+    profile.save(update_fields=["inaturalist_user_id"])
+    messages.success(request, "iNaturalist profile saved.")
+    return redirect("core:dashboard")
+
+
+@login_required
+@require_POST
 def sync_now(request):
     profile = request.user.profile
-    if not profile.ebird_profile_id:
-        messages.error(request, "Set your eBird profile ID first.")
+    if not (profile.ebird_profile_id or profile.inaturalist_user_id):
+        messages.error(request, "Link an eBird or iNaturalist profile first.")
         return redirect("core:dashboard")
     updated = process_account(profile)
     if updated:
@@ -123,7 +141,7 @@ def sync_now(request):
             request, format_html("Updated {} activity(ies): {}", len(updated), links)
         )
     else:
-        messages.info(request, "No matching checklists found for recent activities.")
+        messages.info(request, "No matching observations found for recent activities.")
     return redirect("core:dashboard")
 
 
@@ -140,7 +158,7 @@ def webhook(request):
         event = {}
     if event.get("object_type") == "activity" and event.get("aspect_type") in ("create", "update"):
         profile = Profile.objects.filter(strava_athlete_id=event.get("owner_id")).first()
-        if profile and profile.ebird_profile_id:
+        if profile and (profile.ebird_profile_id or profile.inaturalist_user_id):
             if (
                 profile.last_webhook_at is not None
                 and (dj_timezone.now() - profile.last_webhook_at).total_seconds() < WEBHOOK_COOLDOWN_SECONDS

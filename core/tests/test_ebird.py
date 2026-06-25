@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch, MagicMock
 from django.test import SimpleTestCase
 from core.services import ebird
@@ -47,3 +47,28 @@ class EbirdTests(SimpleTestCase):
         result = ebird.build_bird_dict([])
         self.assertEqual(result, {})
         get.assert_not_called()
+
+
+class CollectSpeciesTests(SimpleTestCase):
+    def _activity(self):
+        base = datetime(2026, 6, 1, 7, tzinfo=timezone.utc)
+        return IdDates(99, base, base + timedelta(hours=1))
+
+    @patch("core.services.ebird.build_bird_dict", return_value={"American Robin": "3"})
+    @patch("core.services.ebird.get_dates_observation")
+    @patch("core.services.ebird.get_recent_checklists")
+    def test_overlapping_checklist_yields_species(self, lists, dates, build):
+        base = datetime(2026, 6, 1, 7, tzinfo=timezone.utc)
+        checklist = IdDates("S1", base + timedelta(minutes=10))
+        lists.return_value = [checklist]
+        dates.return_value = (base + timedelta(hours=1), [{"speciesCode": "amerob"}])
+        self.assertEqual(
+            ebird.collect_species("PROF", [self._activity()]),
+            {99: {"American Robin": "3"}},
+        )
+
+    @patch("core.services.ebird.get_dates_observation", return_value=(None, None))
+    @patch("core.services.ebird.get_recent_checklists")
+    def test_checklist_without_duration_skipped(self, lists, dates):
+        lists.return_value = [IdDates("S1", datetime(2026, 6, 1, 7, tzinfo=timezone.utc))]
+        self.assertEqual(ebird.collect_species("PROF", [self._activity()]), {})

@@ -72,6 +72,11 @@ class LandingTests(TestCase):
         resp = self.client.get(reverse("core:landing"))
         self.assertNotContains(resp, "SAFETY")
 
+    def test_landing_demo_uses_new_header(self):
+        resp = self.client.get(reverse("core:landing"))
+        self.assertContains(resp, "Nature seen during activity:")
+        self.assertNotContains(resp, "Birds seen during activity:")
+
 
 class DashboardTests(TestCase):
     def _login(self):
@@ -149,11 +154,54 @@ class DashboardTests(TestCase):
         self.assertEqual(resp.status_code, 405)
 
     @patch("core.views.process_account")
-    def test_sync_skips_when_no_ebird_id(self, proc):
+    def test_sync_skips_when_no_source_linked(self, proc):
         self._login()
         resp = self.client.post(reverse("core:sync"))
         self.assertEqual(resp.status_code, 302)
         proc.assert_not_called()
+
+    def test_dashboard_shows_inaturalist_panel(self):
+        self._login()
+        resp = self.client.get(reverse("core:dashboard"))
+        self.assertContains(resp, "iNaturalist")
+
+    def test_save_inaturalist_profile(self):
+        self._login()
+        resp = self.client.post(
+            reverse("core:inaturalist_profile"), {"inaturalist_user_id": "naturelover"}
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(
+            Profile.objects.get(strava_athlete_id=7).inaturalist_user_id, "naturelover"
+        )
+
+    def test_save_inaturalist_profile_extracts_login_from_url(self):
+        self._login()
+        self.client.post(
+            reverse("core:inaturalist_profile"),
+            {"inaturalist_user_id": "https://www.inaturalist.org/people/naturelover"},
+        )
+        self.assertEqual(
+            Profile.objects.get(strava_athlete_id=7).inaturalist_user_id, "naturelover"
+        )
+
+    def test_save_inaturalist_profile_rejects_invalid(self):
+        self._login()
+        resp = self.client.post(
+            reverse("core:inaturalist_profile"),
+            {"inaturalist_user_id": "not a name!"}, follow=True,
+        )
+        self.assertEqual(Profile.objects.get(strava_athlete_id=7).inaturalist_user_id, "")
+        self.assertContains(resp, "valid iNaturalist username")
+
+    @patch("core.views.process_account", return_value=[99])
+    def test_sync_runs_with_only_inaturalist(self, proc):
+        user = self._login()
+        user.profile.inaturalist_user_id = "me"
+        user.profile.save(update_fields=["inaturalist_user_id"])
+        resp = self.client.post(reverse("core:sync"))
+        self.assertEqual(resp.status_code, 302)
+        proc.assert_called_once()
 
 
 class WebhookTests(TestCase):
@@ -231,6 +279,20 @@ class WebhookTests(TestCase):
                                 content_type="application/json")
         self.assertEqual(resp.status_code, 200)
         proc.assert_not_called()
+
+    @patch("core.views.process_account", return_value=[99])
+    def test_post_processes_inaturalist_only_owner(self, proc):
+        user = User.objects.create(username="11")
+        Profile.objects.create(
+            user=user, strava_athlete_id=11, access_token="a", refresh_token="r",
+            expires_at=dj_timezone.now() + timedelta(hours=1), inaturalist_user_id="me",
+        )
+        body = {"object_type": "activity", "aspect_type": "create",
+                "object_id": 99, "owner_id": 11}
+        resp = self.client.post(reverse("core:webhook"), data=json.dumps(body),
+                                content_type="application/json")
+        self.assertEqual(resp.status_code, 200)
+        proc.assert_called_once()
 
     @patch("core.views.process_account", return_value=[77])
     def test_webhook_processes_after_cooldown(self, proc):
