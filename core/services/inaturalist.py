@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import requests
 from .timespan import IdDates
 
@@ -25,6 +25,8 @@ def collect_species(user_id: str, activities: list[IdDates]) -> dict[int, dict[s
         if not ts or not taxon:
             continue
         observed = datetime.fromisoformat(ts)
+        if observed.tzinfo is None:
+            observed = observed.replace(tzinfo=timezone.utc)
         name = taxon.get("preferred_common_name") or taxon.get("name")
         if not name:
             continue

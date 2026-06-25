@@ -51,6 +51,13 @@ class CollectSpeciesTests(SimpleTestCase):
         self.assertEqual(inaturalist.collect_species("me", [_activity()]), {})
 
     @patch("core.services.inaturalist.requests.get")
+    def test_skips_observation_without_taxon(self, get):
+        get.return_value = _resp({"results": [
+            {"time_observed_at": "2026-06-01T07:30:00+00:00"},  # no taxon
+        ]})
+        self.assertEqual(inaturalist.collect_species("me", [_activity()]), {})
+
+    @patch("core.services.inaturalist.requests.get")
     def test_no_activities_makes_no_request(self, get):
         self.assertEqual(inaturalist.collect_species("me", []), {})
         get.assert_not_called()
