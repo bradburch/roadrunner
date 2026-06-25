@@ -137,6 +137,41 @@ inlines the match loop. Replace that with a concurrent fan-out:
   found".
 - `webhook`: broaden the `profile.ebird_profile_id` gate to either source.
 
+### User-facing copy (all-taxa + dual-source)
+
+The product is no longer birds-only or eBird-only; the copy must follow. The
+roadrunner name/branding stays (out of scope to rename). Changes:
+
+**`core/templates/core/base.html`**
+- `<title>` "where birding meets your miles" → a nature-wide phrasing
+  (e.g. "where nature meets your miles").
+
+**`core/templates/core/landing.html`**
+- Eyebrow "eBird × Strava" → reflect both sources (e.g. "eBird · iNaturalist ×
+  Strava").
+- Headline "Where *birding* meets your miles." → nature-wide.
+- Subhead "writes the birds from your eBird checklist" → species logged on eBird
+  *or* iNaturalist.
+- Demo block header "Birds seen during activity:" → "Nature seen during activity:".
+  Mix a couple of non-bird, no-count lines (e.g. a plant, a herp) into the sample
+  list so it shows all-taxa and the count/no-count formats side by side. (Product
+  choice — flag for review.)
+
+**`core/templates/core/_about.html`**
+- "adds the birds you logged on eBird" and "overlaps an eBird checklist … species
+  and counts" → describe both sources; counts come from eBird, iNaturalist
+  contributes names.
+- "reads your most recent Strava activities and recent eBird checklists" → also
+  recent iNaturalist observations.
+- "Birds seen during activity" block-name reference → "Nature seen during
+  activity".
+- Keep the eBird duration caveat but scope it as eBird-specific; add the
+  iNaturalist equivalent (observations need a recorded time to be matched).
+
+**`README.md`**
+- Opening line "writes the birds from your eBird checklists" and "link an eBird
+  profile ID" → both sources; note iNaturalist needs no API key (no new env var).
+
 ## Data flow
 
 ```
