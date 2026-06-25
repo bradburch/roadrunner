@@ -2,6 +2,7 @@ from datetime import datetime, timezone, timedelta
 import requests
 from django.conf import settings
 from .timespan import IdDates
+from . import matching
 
 _API = "https://api.ebird.org/v2/"
 
@@ -49,3 +50,20 @@ def _get_taxonomy(codes: list[str]) -> list:
     params = [("species", c) for c in codes] + [("fmt", "json")]
     url = f"{_API}ref/taxonomy/ebird"
     return requests.get(url, params=params, headers=_headers(), timeout=30).json()
+
+
+def collect_species(profile_id: str, activities: list[IdDates]) -> dict[int, dict[str, str]]:
+    out: dict[int, dict[str, str]] = {}
+    for checklist in get_recent_checklists(profile_id):
+        end, obs = get_dates_observation(checklist)
+        if end is None:
+            continue
+        checklist.end_date, checklist.obs = end, obs
+        for activity in activities:
+            if matching.compare(activity, checklist):
+                species = build_bird_dict(checklist.obs)
+                existing = out.get(activity.identifier)
+                out[activity.identifier] = (
+                    matching.add_dict(existing, species) if existing else species
+                )
+    return out
