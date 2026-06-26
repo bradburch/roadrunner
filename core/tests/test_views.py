@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils import timezone as dj_timezone
 from django.contrib.auth.models import User
 from core.models import Profile
+from core.services.timespan import IdDates
 from core.views import WEBHOOK_COOLDOWN_SECONDS
 
 
@@ -220,8 +221,14 @@ class WebhookTests(TestCase):
             })
         self.assertEqual(resp.status_code, 403)
 
+    @patch("core.views.ensure_fresh_token", return_value="tok")
+    @patch("core.views.strava.get_activity")
+    @patch("core.views.recheck.reconcile")
     @patch("core.views.process_account", return_value=[99])
-    def test_post_create_event_processes_owner(self, proc):
+    def test_post_create_event_processes_owner(self, proc, reconc, get_act, tok):
+        get_act.return_value = IdDates(
+            99, dj_timezone.now(), dj_timezone.now() + timedelta(hours=1)
+        )
         user = User.objects.create(username="7")
         Profile.objects.create(
             user=user, strava_athlete_id=7, access_token="a", refresh_token="r",
@@ -233,7 +240,11 @@ class WebhookTests(TestCase):
                                 content_type="application/json")
         self.assertEqual(resp.status_code, 200)
         proc.assert_called_once()
-        self.assertEqual(list(proc.call_args.args[1]), [99])
+        self.assertEqual(
+            [a.identifier for a in proc.call_args.kwargs["activities"]], [99]
+        )
+        # data found (proc returned [99]) → reconcile told it was found
+        self.assertIs(reconc.call_args.kwargs["found"], True)
 
     @patch("core.views.process_account")
     def test_post_unknown_owner_is_noop_200(self, proc):
@@ -251,8 +262,13 @@ class WebhookTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         proc.assert_not_called()
 
+    @patch("core.views.ensure_fresh_token", return_value="tok")
+    @patch("core.views.strava.get_activity")
     @patch("core.views.process_account", side_effect=Exception("boom"))
-    def test_post_processing_error_still_returns_200(self, proc):
+    def test_post_processing_error_still_returns_200(self, proc, get_act, tok):
+        get_act.return_value = IdDates(
+            55, dj_timezone.now(), dj_timezone.now() + timedelta(hours=1)
+        )
         user = User.objects.create(username="8")
         Profile.objects.create(
             user=user, strava_athlete_id=8, access_token="a", refresh_token="r",
@@ -280,8 +296,14 @@ class WebhookTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         proc.assert_not_called()
 
+    @patch("core.views.ensure_fresh_token", return_value="tok")
+    @patch("core.views.strava.get_activity")
+    @patch("core.views.recheck.reconcile")
     @patch("core.views.process_account", return_value=[99])
-    def test_post_processes_inaturalist_only_owner(self, proc):
+    def test_post_processes_inaturalist_only_owner(self, proc, reconc, get_act, tok):
+        get_act.return_value = IdDates(
+            99, dj_timezone.now(), dj_timezone.now() + timedelta(hours=1)
+        )
         user = User.objects.create(username="11")
         Profile.objects.create(
             user=user, strava_athlete_id=11, access_token="a", refresh_token="r",
@@ -294,8 +316,14 @@ class WebhookTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         proc.assert_called_once()
 
+    @patch("core.views.ensure_fresh_token", return_value="tok")
+    @patch("core.views.strava.get_activity")
+    @patch("core.views.recheck.reconcile")
     @patch("core.views.process_account", return_value=[77])
-    def test_webhook_processes_after_cooldown(self, proc):
+    def test_webhook_processes_after_cooldown(self, proc, reconc, get_act, tok):
+        get_act.return_value = IdDates(
+            77, dj_timezone.now(), dj_timezone.now() + timedelta(hours=1)
+        )
         user = User.objects.create(username="10")
         profile = Profile.objects.create(
             user=user, strava_athlete_id=10, access_token="a", refresh_token="r",
@@ -309,6 +337,67 @@ class WebhookTests(TestCase):
                                 content_type="application/json")
         self.assertEqual(resp.status_code, 200)
         proc.assert_called_once()
-        self.assertEqual(list(proc.call_args.args[1]), [77])
+        self.assertEqual(
+            [a.identifier for a in proc.call_args.kwargs["activities"]], [77]
+        )
         profile.refresh_from_db()
         self.assertGreater(profile.last_webhook_at, old_last_webhook_at)
+
+    @patch("core.views.ensure_fresh_token", return_value="tok")
+    @patch("core.views.strava.get_activity")
+    @patch("core.views.recheck.reconcile")
+    @patch("core.views.process_account", return_value=[])
+    def test_webhook_no_data_schedules_recheck(self, proc, reconc, get_act, tok):
+        get_act.return_value = IdDates(
+            99, dj_timezone.now(), dj_timezone.now() + timedelta(hours=1)
+        )
+        user = User.objects.create(username="55")
+        Profile.objects.create(
+            user=user, strava_athlete_id=55, access_token="a", refresh_token="r",
+            expires_at=dj_timezone.now() + timedelta(hours=1), ebird_profile_id="P",
+        )
+        body = {"object_type": "activity", "aspect_type": "create",
+                "object_id": 99, "owner_id": 55}
+        resp = self.client.post(reverse("core:webhook"), data=json.dumps(body),
+                                content_type="application/json")
+        self.assertEqual(resp.status_code, 200)
+        reconc.assert_called_once()
+        self.assertIs(reconc.call_args.kwargs["found"], False)
+
+
+from django.test import override_settings
+
+
+class CronRechecksTests(TestCase):
+    @override_settings(CRON_SECRET="s3cret")
+    @patch("core.views.recheck.run_due_rechecks", return_value=3)
+    def test_valid_secret_drains(self, drain):
+        resp = self.client.get(
+            reverse("core:run_rechecks"), HTTP_AUTHORIZATION="Bearer s3cret"
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["processed"], 3)
+        drain.assert_called_once()
+
+    @override_settings(CRON_SECRET="s3cret")
+    @patch("core.views.recheck.run_due_rechecks")
+    def test_bad_secret_forbidden(self, drain):
+        resp = self.client.get(
+            reverse("core:run_rechecks"), HTTP_AUTHORIZATION="Bearer wrong"
+        )
+        self.assertEqual(resp.status_code, 403)
+        drain.assert_not_called()
+
+    @override_settings(CRON_SECRET="s3cret")
+    @patch("core.views.recheck.run_due_rechecks")
+    def test_missing_secret_forbidden(self, drain):
+        resp = self.client.get(reverse("core:run_rechecks"))
+        self.assertEqual(resp.status_code, 403)
+        drain.assert_not_called()
+
+    @override_settings(CRON_SECRET="", DEBUG=False)
+    @patch("core.views.recheck.run_due_rechecks")
+    def test_unconfigured_forbidden_in_prod(self, drain):
+        resp = self.client.get(reverse("core:run_rechecks"))
+        self.assertEqual(resp.status_code, 403)
+        drain.assert_not_called()
