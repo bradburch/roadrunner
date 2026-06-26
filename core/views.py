@@ -186,9 +186,11 @@ def run_rechecks(request):
     # Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`. Reject anything
     # else so the endpoint can't be used to drive Strava traffic by outsiders.
     expected = settings.CRON_SECRET
-    if not expected and not settings.DEBUG:
+    # Deny whenever no secret is configured — never leave the endpoint open
+    # (an unset secret + DEBUG must not become an unauthenticated drain).
+    if not expected:
         return HttpResponseForbidden("cron not configured")
-    if expected and not secrets.compare_digest(
+    if not secrets.compare_digest(
         request.headers.get("Authorization", ""), f"Bearer {expected}"
     ):
         return HttpResponseForbidden("bad cron secret")

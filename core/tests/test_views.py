@@ -398,3 +398,11 @@ class CronRechecksTests(TestCase):
         resp = self.client.get(reverse("core:run_rechecks"))
         self.assertEqual(resp.status_code, 403)
         drain.assert_not_called()
+
+    @override_settings(CRON_SECRET="", DEBUG=True)
+    @patch("core.views.recheck.run_due_rechecks")
+    def test_unconfigured_forbidden_even_in_debug(self, drain):
+        # An unset secret must never leave the endpoint open, DEBUG or not.
+        resp = self.client.get(reverse("core:run_rechecks"))
+        self.assertEqual(resp.status_code, 403)
+        drain.assert_not_called()
