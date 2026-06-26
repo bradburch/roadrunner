@@ -1,0 +1,22 @@
+name: Drain activity re-checks
+
+# Free alternative to Vercel Cron (which is daily-only on the Hobby plan): a
+# GitHub Actions schedule hits the authenticated /cron/rechecks endpoint hourly.
+# GitHub may delay scheduled runs under load, and disables the schedule after
+# 60 days of repo inactivity — both fine here (the 2/4/8h ladder tolerates lag).
+on:
+  schedule:
+    - cron: "0 * * * *" # hourly, UTC
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+jobs:
+  drain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit /cron/rechecks
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsS --max-time 60 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            https://roadrunner-iota-nine.vercel.app/cron/rechecks

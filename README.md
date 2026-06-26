@@ -75,11 +75,25 @@ This step is completed after live deploy when your callback URL is reachable.
 When a Strava activity is created/updated, the webhook checks for an overlapping
 eBird/iNaturalist observation *at that moment*. Because birders often save their
 checklists hours later, an activity with no match is queued for re-checks **2, 4,
-and 8 hours later**. A Vercel Cron job hits `/cron/rechecks` (hourly) and drains
-due re-checks; the moment a checklist is found the species are written and the
-queue entry is dropped, and entries are discarded after the 8-hour attempt.
+and 8 hours later**. A scheduler hits `/cron/rechecks` (hourly) and drains due
+re-checks; the moment a checklist is found the species are written and the queue
+entry is dropped, and entries are discarded after the 8-hour attempt.
 
-The endpoint is authenticated with `CRON_SECRET` — set it in both the Vercel
-environment and (Vercel injects it into the cron request automatically). Note: on
-Vercel's **Hobby** plan cron jobs run at most once per day; the hourly schedule
-needs the **Pro** plan. Adjust the `crons` schedule in `vercel.json` to taste.
+`/cron/rechecks` is an authenticated HTTP GET — it works with any external
+scheduler, so it does **not** require Vercel's paid plan (Vercel Cron is daily-only
+on the free **Hobby** plan). This repo drives it from a free **GitHub Actions**
+schedule, `.github/workflows/rechecks.yml`, which `curl`s the endpoint hourly with
+the secret.
+
+Setup:
+
+1. Set `CRON_SECRET` in the Vercel environment (the app reads it to authenticate the call).
+2. Add the **same** value as a GitHub Actions secret named `CRON_SECRET`
+   (repo → Settings → Secrets and variables → Actions).
+3. If your deployed URL differs from `roadrunner-iota-nine.vercel.app`, update it in the workflow.
+
+The endpoint denies all calls when `CRON_SECRET` is unset, and requires
+`Authorization: Bearer <CRON_SECRET>` otherwise. GitHub may delay scheduled runs
+under load and disables the schedule after 60 days of repo inactivity — both fine
+here, since the 2/4/8h ladder tolerates lateness. (You can equally point Vercel
+Cron, cron-job.org, or any scheduler at the same endpoint.)
