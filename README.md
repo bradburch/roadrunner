@@ -15,6 +15,7 @@ A multi-user web app that shares the nature you saw on your activities with your
 | `STRAVA_CLIENT_ID` | Strava API application client ID |
 | `STRAVA_CLIENT_SECRET` | Strava API application client secret |
 | `STRAVA_WEBHOOK_VERIFY_TOKEN` | A secret string you choose; used to verify Strava webhook subscriptions |
+| `CRON_SECRET` | Secret string used to authenticate Vercel Cron calls to `/cron/rechecks`; Vercel sends it as `Authorization: Bearer <CRON_SECRET>` |
 
 ## Local Development
 
@@ -69,13 +70,16 @@ curl -X POST https://www.strava.com/api/v3/push_subscriptions \
 
 This step is completed after live deploy when your callback URL is reachable.
 
-## Roadmap / TODO
+## Scheduled Re-checks
 
-- **Deferred re-check for late checklists.** Today, when a Strava activity is
-  created/updated the webhook checks for an overlapping eBird checklist *at that
-  moment* — so if the checklist hasn't been saved yet, the activity is never
-  updated. Add a scheduled job that, for an activity that had **no** matching
-  checklist, re-checks **2, 4, and 8 hours** after the activity was updated, and
-  fills in the birds if a checklist has since been saved. (Requires persisting
-  per-activity sync state and a scheduler — e.g. Vercel Cron draining a small
-  queue.)
+When a Strava activity is created/updated, the webhook checks for an overlapping
+eBird/iNaturalist observation *at that moment*. Because birders often save their
+checklists hours later, an activity with no match is queued for re-checks **2, 4,
+and 8 hours later**. A Vercel Cron job hits `/cron/rechecks` (hourly) and drains
+due re-checks; the moment a checklist is found the species are written and the
+queue entry is dropped, and entries are discarded after the 8-hour attempt.
+
+The endpoint is authenticated with `CRON_SECRET` — set it in both the Vercel
+environment and (Vercel injects it into the cron request automatically). Note: on
+Vercel's **Hobby** plan cron jobs run at most once per day; the hourly schedule
+needs the **Pro** plan. Adjust the `crons` schedule in `vercel.json` to taste.

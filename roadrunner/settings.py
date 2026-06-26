@@ -74,6 +74,7 @@ EBIRD_API_TOKEN = os.environ.get("EBIRD_API_TOKEN", "")
 STRAVA_CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID", "")
 STRAVA_CLIENT_SECRET = os.environ.get("STRAVA_CLIENT_SECRET", "")
 STRAVA_WEBHOOK_VERIFY_TOKEN = os.environ.get("STRAVA_WEBHOOK_VERIFY_TOKEN", "")
+CRON_SECRET = os.environ.get("CRON_SECRET", "")
 
 if not DEBUG:
     # Behind Vercel's TLS-terminating proxy, trust the forwarded scheme so
