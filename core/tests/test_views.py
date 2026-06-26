@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timezone, timedelta
 from unittest.mock import patch
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone as dj_timezone
 from django.contrib.auth.models import User
@@ -363,9 +363,6 @@ class WebhookTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         reconc.assert_called_once()
         self.assertIs(reconc.call_args.kwargs["found"], False)
-
-
-from django.test import override_settings
 
 
 class CronRechecksTests(TestCase):

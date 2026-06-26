@@ -23,7 +23,6 @@ def schedule(profile: Profile, activity: IdDates) -> None:
             "start_date": activity.start_date,
             "end_date": activity.end_date,
             "created_at": now,
-            "tier": 0,
             "due_at": now + ActivityRecheck.OFFSETS[0],
         },
     )
