@@ -27,12 +27,12 @@ def ensure_fresh_token(profile: Profile) -> str:
     return profile.access_token
 
 
-def process_account(profile: Profile, activity_ids: list[int] | None = None) -> list[int]:
+def process_account(profile: Profile, activities: list | None = None) -> list[int]:
     access = ensure_fresh_token(profile)
 
-    if activity_ids is not None:
-        activities = [strava.get_activity(access, i) for i in activity_ids]
-    else:
+    # `activities` (pre-resolved IdDates) lets rechecks reuse a cached window and
+    # skip the Strava read — the common no-data path then makes no Strava call.
+    if activities is None:
         activities = strava.get_recent_activities(access)
 
     sources = []

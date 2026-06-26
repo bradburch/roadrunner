@@ -17,8 +17,8 @@ from django.utils.html import format_html, format_html_join
 from django.views.decorators.csrf import csrf_exempt
 from urllib.parse import urlencode
 from .models import Profile
-from .services import strava
-from .services.sync import process_account
+from .services import strava, recheck
+from .services.sync import process_account, ensure_fresh_token
 
 logger = logging.getLogger(__name__)
 
@@ -167,7 +167,32 @@ def webhook(request):
             profile.last_webhook_at = dj_timezone.now()
             profile.save(update_fields=["last_webhook_at"])
             try:
-                process_account(profile, [event["object_id"]])
+                # Resolve the window once; reuse it for the sync and (if no data
+                # lands) the cached recheck row, so retries make no Strava read.
+                access = ensure_fresh_token(profile)
+                activity = strava.get_activity(access, event["object_id"])
+                updated = process_account(profile, activities=[activity])
+                recheck.reconcile(
+                    profile, activity, found=activity.identifier in updated
+                )
             except Exception:
-                logger.exception("Webhook processing failed for athlete %s", event.get("owner_id"))
+                logger.exception(
+                    "Webhook processing failed for athlete %s", event.get("owner_id")
+                )
     return JsonResponse({"status": "ok"})
+
+
+def run_rechecks(request):
+    # Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`. Reject anything
+    # else so the endpoint can't be used to drive Strava traffic by outsiders.
+    expected = settings.CRON_SECRET
+    # Deny whenever no secret is configured — never leave the endpoint open
+    # (an unset secret + DEBUG must not become an unauthenticated drain).
+    if not expected:
+        return HttpResponseForbidden("cron not configured")
+    if not secrets.compare_digest(
+        request.headers.get("Authorization", ""), f"Bearer {expected}"
+    ):
+        return HttpResponseForbidden("bad cron secret")
+    processed = recheck.run_due_rechecks()
+    return JsonResponse({"status": "ok", "processed": processed})

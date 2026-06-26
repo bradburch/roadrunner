@@ -10,5 +10,6 @@ urlpatterns = [
     path("ebird-profile", views.ebird_profile, name="ebird_profile"),
     path("inaturalist-profile", views.inaturalist_profile, name="inaturalist_profile"),
     path("sync", views.sync_now, name="sync"),
+    path("cron/rechecks", views.run_rechecks, name="run_rechecks"),
     path("webhook", views.webhook, name="webhook"),
 ]

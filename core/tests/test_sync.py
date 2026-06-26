@@ -111,3 +111,16 @@ class ProcessAccountTests(TestCase):
         acts.return_value = [self._activity()]
         self.assertEqual(sync.process_account(_profile()), [])
         update.assert_not_called()
+
+    @patch("core.services.sync.strava.get_activity")
+    @patch("core.services.sync.strava.get_activity_raw_description", return_value="")
+    @patch("core.services.sync.strava.update_description", return_value=200)
+    @patch("core.services.sync.inaturalist.collect_species", return_value={})
+    @patch("core.services.sync.ebird.collect_species", return_value={99: {"Robin": "3"}})
+    def test_activities_arg_skips_strava_read(
+        self, ebird_c, inat_c, update, desc_get, get_activity
+    ):
+        updated = sync.process_account(_profile(), activities=[self._activity()])
+        self.assertEqual(updated, [99])
+        get_activity.assert_not_called()  # window supplied; no Strava read
+        ebird_c.assert_called_once()
