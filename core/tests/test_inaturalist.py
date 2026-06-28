@@ -33,6 +33,20 @@ class CollectSpeciesTests(SimpleTestCase):
         )
 
     @patch("core.services.inaturalist.requests.get")
+    def test_matches_on_local_wall_clock_not_utc_instant(self, get):
+        # iNat sends a real offset; activities/eBird store local wall-clock as UTC.
+        # 07:30 local is inside the 07:00-08:00 window even though 07:30-07:00 is 14:30 UTC.
+        get.return_value = _resp({"results": [
+            {"time_observed_at": "2026-06-01T07:30:00-07:00",
+             "taxon": {"preferred_common_name": "Ring-necked Snake",
+                       "name": "Diadophis punctatus"}},
+        ]})
+        self.assertEqual(
+            inaturalist.collect_species("me", [_activity()]),
+            {99: {"Ring-necked Snake": ""}},
+        )
+
+    @patch("core.services.inaturalist.requests.get")
     def test_falls_back_to_scientific_name(self, get):
         get.return_value = _resp({"results": [
             {"time_observed_at": "2026-06-01T07:30:00+00:00",

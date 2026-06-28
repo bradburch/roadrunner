@@ -24,9 +24,10 @@ def collect_species(user_id: str, activities: list[IdDates]) -> dict[int, dict[s
         taxon = obs.get("taxon")
         if not ts or not taxon:
             continue
-        observed = datetime.fromisoformat(ts)
-        if observed.tzinfo is None:
-            observed = observed.replace(tzinfo=timezone.utc)
+        # Match eBird/Strava: compare local wall-clock, not the true UTC instant.
+        # iNat sends a real offset; drop it so 07:30 local lines up with the
+        # activity window (also stored as local wall-clock labeled UTC).
+        observed = datetime.fromisoformat(ts).replace(tzinfo=timezone.utc)
         name = taxon.get("preferred_common_name") or taxon.get("name")
         if not name:
             continue
