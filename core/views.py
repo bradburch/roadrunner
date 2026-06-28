@@ -27,6 +27,10 @@ WEBHOOK_COOLDOWN_SECONDS = 30
 
 
 def landing(request):
+    # A returning, still-authenticated user shouldn't be shown the "Connect with
+    # Strava" page (and pushed back through OAuth) — send them to the dashboard.
+    if request.user.is_authenticated:
+        return redirect("core:dashboard")
     return render(request, "core/landing.html")
 
 
@@ -137,8 +141,9 @@ def sync_now(request):
             '<a href="https://www.strava.com/activities/{0}" target="_blank" rel="noopener">{0}</a>',
             ((activity_id,) for activity_id in updated),
         )
+        noun = "activity" if len(updated) == 1 else "activities"
         messages.success(
-            request, format_html("Updated {} activity(ies): {}", len(updated), links)
+            request, format_html("Updated {} {}: {}", len(updated), noun, links)
         )
     else:
         messages.info(request, "No matching observations found for recent activities.")
