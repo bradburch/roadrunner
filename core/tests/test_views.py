@@ -78,6 +78,16 @@ class LandingTests(TestCase):
         self.assertContains(resp, "Nature seen during activity:")
         self.assertNotContains(resp, "Birds seen during activity:")
 
+    def test_landing_redirects_authenticated_user_to_dashboard(self):
+        user = User.objects.create(username="7")
+        Profile.objects.create(
+            user=user, strava_athlete_id=7, access_token="a", refresh_token="r",
+            expires_at=dj_timezone.now() + timedelta(hours=1),
+        )
+        self.client.force_login(user)
+        resp = self.client.get(reverse("core:landing"))
+        self.assertRedirects(resp, reverse("core:dashboard"))
+
 
 class DashboardTests(TestCase):
     def _login(self):

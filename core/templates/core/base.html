@@ -105,6 +105,8 @@
     .stack > * + *{ margin-top:1.35rem }
     .who{ color:var(--ink-soft) }
     .who b{ color:var(--ink); font-weight:600 }
+    .colophon{ margin-top:3rem; padding-top:1.1rem; border-top:1px solid var(--line);
+      font-family:var(--mono); font-size:.78rem; letter-spacing:.04em; color:var(--muted); }
 
     /* motion */
     @keyframes rise{ from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:none} }
@@ -124,6 +126,7 @@
     <hr class="rule">
     {% if messages %}<div class="flashes">{% for message in messages %}<div class="flash flash--{{ message.tags }}">{{ message|safe }}</div>{% endfor %}</div>{% endif %}
     <main class="stack" style="margin-top:1.6rem">{% block content %}{% endblock %}</main>
+    <footer class="colophon">Created by Brad Burch</footer>
   </div>
 </body>
 </html>

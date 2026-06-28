@@ -69,6 +69,10 @@ USE_TZ = True
 
 LOGIN_URL = "core:landing"
 
+# Keep users logged in across visits: refresh the 2-week session window on every
+# request, so an active user never has to re-auth with Strava just to sign in.
+SESSION_SAVE_EVERY_REQUEST = True
+
 # App-specific config (read by core.services)
 EBIRD_API_TOKEN = os.environ.get("EBIRD_API_TOKEN", "")
 STRAVA_CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID", "")
