@@ -94,6 +94,13 @@ class UpsertBlockTests(SimpleTestCase):
         self.assertTrue(out.startswith("My ride."))
         self.assertIn("5 Robin", out)
 
+    def test_resync_keeps_user_link_after_block(self):
+        first = matching.upsert_block("My ride.", "3 Robin\n")
+        edited = first + "\n\nhttps://www.youtube.com/watch?v=abc"
+        out = matching.upsert_block(edited, "5 Robin\n")
+        self.assertIn("https://www.youtube.com/watch?v=abc", out)
+        self.assertEqual(out.count(matching.ROADRUNNER_URL), 1)
+
     def test_idempotent_same_input(self):
         once = matching.upsert_block("My ride.", "3 Robin\n")
         twice = matching.upsert_block(once, "3 Robin\n")

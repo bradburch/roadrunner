@@ -15,3 +15,7 @@ package-lock.json
 # Playwright/screenshot artifacts
 .playwright-mcp/
 *.png
+
+# Personal project write-up (résumé/portfolio), not part of the app
+docs/project-summary.md
+docs/github-pages-overview.md
