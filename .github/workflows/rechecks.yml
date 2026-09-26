@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Keepalive (reset GitHub's 60-day inactivity timer)
+        continue-on-error: true # never block the drain on a keepalive hiccup
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow enable rechecks.yml --repo "$GITHUB_REPOSITORY"
