@@ -1,54 +1,79 @@
 {% extends "core/base.html" %}
 {% block content %}
-<p class="who">Connected as
-   <a href="https://www.strava.com/athletes/{{ profile.strava_athlete_id }}" target="_blank" rel="noopener"><b>{{ user.get_full_name|default:"your Strava account" }}</b></a>
-   · Strava athlete <em>{{ profile.strava_athlete_id }}</em></p>
+<div class="account">
+  <h1>{{ user.get_full_name|default:"Your account" }}</h1>
+  <span class="muted small">Strava athlete
+    <a href="https://www.strava.com/athletes/{{ profile.strava_athlete_id }}" target="_blank" rel="noopener">{{ profile.strava_athlete_id }}</a></span>
+</div>
 
-{% include "core/_about.html" %}
+<section class="section">
+  <h2>Sources</h2>
+  <p class="help section-intro">Link eBird, iNaturalist, or both. Synced activities merge species from whichever you connect.</p>
 
-<form method="post" action="{% url 'core:ebird_profile' %}" class="panel">
-  {% csrf_token %}
-  <p class="eyebrow">Your eBird profile</p>
-  <div class="field">
-    <label for="ebird_profile_id">eBird Profile ID</label>
-    <input class="input" id="ebird_profile_id" name="ebird_profile_id"
-           value="{{ profile.ebird_profile_id }}" placeholder="e.g. AbCdEf1234">
-  </div>
-  <button class="btn btn--ghost" type="submit">Save</button>
-  {% if profile.ebird_profile_id %}<a class="note" style="margin-left:.7rem" href="https://ebird.org/profile/{{ profile.ebird_profile_id }}" target="_blank" rel="noopener">View your eBird profile&nbsp;↗</a>{% endif %}
-  <p class="note" style="margin:.7rem 0 0">
-    Find this in your eBird profile URL, right after <code>/profile/</code> —
-    e.g. <code>ebird.org/profile/<b>AbCdEf1234</b></code>. 
-    </p>
-  <p class="note" style="margin:.7rem 0 0">
-    Your eBird profile <em>must</em> be <strong>public</strong> for this to work; you can change that
-    in your eBird account settings.
-  </p>
-</form>
+  <form method="post" action="{% url 'core:ebird_profile' %}" class="source">
+    {% csrf_token %}
+    <div class="source__meta">
+      <h3>eBird</h3>
+      {% if profile.ebird_profile_id %}
+        <span class="status status--on">Linked · <a href="https://ebird.org/profile/{{ profile.ebird_profile_id }}" target="_blank" rel="noopener">view profile</a></span>
+      {% else %}
+        <span class="status">Not linked</span>
+      {% endif %}
+    </div>
+    <div>
+      <label for="ebird_profile_id">eBird profile ID</label>
+      <div class="field-row">
+        <input class="input" id="ebird_profile_id" name="ebird_profile_id"
+               value="{{ profile.ebird_profile_id }}" placeholder="e.g. AbCdEf1234"
+               aria-describedby="ebird_help" autocomplete="off" spellcheck="false">
+        <button class="btn" type="submit">Save</button>
+      </div>
+      <p class="help" id="ebird_help">
+        The part of your profile URL after <code>/profile/</code>, as in
+        <code>ebird.org/profile/<b>AbCdEf1234</b></code>. Your eBird profile
+        must be <strong>public</strong>; you can change that in your eBird
+        account settings.
+      </p>
+    </div>
+  </form>
 
-<form method="post" action="{% url 'core:inaturalist_profile' %}" class="panel">
-  {% csrf_token %}
-  <p class="eyebrow">Your iNaturalist profile</p>
-  <div class="field">
-    <label for="inaturalist_user_id">iNaturalist username</label>
-    <input class="input" id="inaturalist_user_id" name="inaturalist_user_id"
-           value="{{ profile.inaturalist_user_id }}" placeholder="e.g. naturelover">
-  </div>
-  <button class="btn btn--ghost" type="submit">Save</button>
-  {% if profile.inaturalist_user_id %}<a class="note" style="margin-left:.7rem" href="https://www.inaturalist.org/people/{{ profile.inaturalist_user_id }}" target="_blank" rel="noopener">View your iNaturalist profile&nbsp;↗</a>{% endif %}
-  <p class="note" style="margin:.7rem 0 0">
-    Your username from your iNaturalist profile URL, after <code>/people/</code> —
-    e.g. <code>inaturalist.org/people/<b>naturelover</b></code>.
-  </p>
-  <p class="note" style="margin:.7rem 0 0">
-    Link eBird, iNaturalist, or both — synced activities merge species from
-    whichever you connect.
-  </p>
-</form>
+  <form method="post" action="{% url 'core:inaturalist_profile' %}" class="source">
+    {% csrf_token %}
+    <div class="source__meta">
+      <h3>iNaturalist</h3>
+      {% if profile.inaturalist_user_id %}
+        <span class="status status--on">Linked · <a href="https://www.inaturalist.org/people/{{ profile.inaturalist_user_id }}" target="_blank" rel="noopener">view profile</a></span>
+      {% else %}
+        <span class="status">Not linked</span>
+      {% endif %}
+    </div>
+    <div>
+      <label for="inaturalist_user_id">iNaturalist username</label>
+      <div class="field-row">
+        <input class="input" id="inaturalist_user_id" name="inaturalist_user_id"
+               value="{{ profile.inaturalist_user_id }}" placeholder="e.g. naturelover"
+               aria-describedby="inat_help" autocomplete="off" spellcheck="false">
+        <button class="btn" type="submit">Save</button>
+      </div>
+      <p class="help" id="inat_help">
+        The part of your profile URL after <code>/people/</code>, as in
+        <code>inaturalist.org/people/<b>naturelover</b></code>.
+      </p>
+    </div>
+  </form>
+</section>
 
-<form method="post" action="{% url 'core:sync' %}">
-  {% csrf_token %}
-  <button class="btn btn--primary" type="submit">Sync now</button>
-  <span class="note" style="margin-left:.7rem">Checks your most recent Strava activities now.</span>
-</form>
+<section class="section">
+  <h2>Sync</h2>
+  <form method="post" action="{% url 'core:sync' %}" class="sync">
+    {% csrf_token %}
+    <button class="btn btn--primary" type="submit">Sync now</button>
+    <span class="muted small">Checks your most recent Strava activities against your linked sources.</span>
+  </form>
+</section>
+
+<details class="about">
+  <summary>How matching works</summary>
+  {% include "core/_about.html" %}
+</details>
 {% endblock %}
