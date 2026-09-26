@@ -4,3 +4,6 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Ranges already resolve to the newest release on deploy; only PR when a
+    # release falls outside them (e.g. Django 7). Security updates are unaffected.
+    versioning-strategy: increase-if-necessary
