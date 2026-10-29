@@ -16,59 +16,8 @@
     <p>Link eBird, iNaturalist, or both. Synced activities merge species from whichever you connect.</p>
   </div>
 
-  <form method="post" action="{% url 'core:ebird_profile' %}" class="source card">
-    {% csrf_token %}
-    <div class="source__meta">
-      <h3>eBird</h3>
-      {% if profile.ebird_profile_id %}
-        <span class="status status--on">Linked</span>
-        <a class="small" href="https://ebird.org/profile/{{ profile.ebird_profile_id }}" target="_blank" rel="noopener">View profile</a>
-      {% else %}
-        <span class="status">Not linked</span>
-      {% endif %}
-    </div>
-    <div>
-      <label for="ebird_profile_id">eBird profile ID</label>
-      <div class="field-row">
-        <input class="input" id="ebird_profile_id" name="ebird_profile_id"
-               value="{{ profile.ebird_profile_id }}" placeholder="e.g. AbCdEf1234"
-               aria-describedby="ebird_help" autocomplete="off" spellcheck="false">
-        <button class="btn" type="submit">Save</button>
-      </div>
-      <p class="help" id="ebird_help">
-        The part of your profile URL after <code>/profile/</code>, as in
-        <code>ebird.org/profile/<b>AbCdEf1234</b></code>. Your eBird profile
-        must be <strong>public</strong>; you can change that in your eBird
-        account settings.
-      </p>
-    </div>
-  </form>
-
-  <form method="post" action="{% url 'core:inaturalist_profile' %}" class="source card">
-    {% csrf_token %}
-    <div class="source__meta">
-      <h3>iNaturalist</h3>
-      {% if profile.inaturalist_user_id %}
-        <span class="status status--on">Linked</span>
-        <a class="small" href="https://www.inaturalist.org/people/{{ profile.inaturalist_user_id }}" target="_blank" rel="noopener">View profile</a>
-      {% else %}
-        <span class="status">Not linked</span>
-      {% endif %}
-    </div>
-    <div>
-      <label for="inaturalist_user_id">iNaturalist username</label>
-      <div class="field-row">
-        <input class="input" id="inaturalist_user_id" name="inaturalist_user_id"
-               value="{{ profile.inaturalist_user_id }}" placeholder="e.g. naturelover"
-               aria-describedby="inat_help" autocomplete="off" spellcheck="false">
-        <button class="btn" type="submit">Save</button>
-      </div>
-      <p class="help" id="inat_help">
-        The part of your profile URL after <code>/people/</code>, as in
-        <code>inaturalist.org/people/<b>naturelover</b></code>.
-      </p>
-    </div>
-  </form>
+  {% include "core/_source_form.html" with title="eBird" action="core:ebird_profile" field="ebird_profile_id" label="eBird profile ID" value=profile.ebird_profile_id host="ebird.org" segment="profile" example="AbCdEf1234" must_be_public=True %}
+  {% include "core/_source_form.html" with title="iNaturalist" action="core:inaturalist_profile" field="inaturalist_user_id" label="iNaturalist username" value=profile.inaturalist_user_id host="www.inaturalist.org" segment="people" example="naturelover" %}
 </section>
 
 <section class="section">

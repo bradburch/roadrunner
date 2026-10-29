@@ -64,6 +64,9 @@ if sys.argv[1:2] == ["test"]:
     DATABASES["default"] = {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}
 
 STATIC_URL = "static/"
+# Served by Vercel's static builder in production (see vercel.json), by
+# runserver locally.
+STATICFILES_DIRS = [BASE_DIR / "static"]
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 USE_TZ = True
 
