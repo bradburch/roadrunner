@@ -68,6 +68,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 USE_TZ = True
 
 LOGIN_URL = "core:landing"
+LOGOUT_REDIRECT_URL = "core:landing"
 
 # Keep users logged in across visits: refresh the 2-week session window on every
 # request, so an active user never has to re-auth with Strava just to sign in.

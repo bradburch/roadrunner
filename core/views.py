@@ -4,7 +4,7 @@ import re
 import secrets
 from datetime import datetime, timezone
 from django.conf import settings
-from django.contrib.auth import login, logout
+from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
@@ -123,12 +123,6 @@ def inaturalist_profile(request):
     profile.save(update_fields=["inaturalist_user_id"])
     messages.success(request, "iNaturalist profile saved.")
     return redirect("core:dashboard")
-
-
-@require_POST
-def logout_view(request):
-    logout(request)
-    return redirect("core:landing")
 
 
 @login_required

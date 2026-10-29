@@ -1,17 +1,10 @@
 {% extends "core/base.html" %}
 {% block nav %}
-<nav class="nav" aria-label="Primary">
-  <a href="#sources">Sources</a>
-  <a href="#how">How it works</a>
-  <a href="https://www.strava.com/athletes/{{ profile.strava_athlete_id }}" target="_blank" rel="noopener">Strava profile</a>
-  <form method="post" action="{% url 'core:logout' %}">
-    {% csrf_token %}
-    <button class="btn btn--sm" type="submit">Log out</button>
-  </form>
-</nav>
+<a href="#sources">Sources</a>
+<a href="#how">How it works</a>
 {% endblock %}
 {% block content %}
-<div class="section-head account">
+<div class="section-head">
   <span class="eyebrow">Dashboard</span>
   <h1>{{ user.get_full_name|default:"Your account" }}</h1>
 </div>
@@ -23,7 +16,7 @@
     <p>Link eBird, iNaturalist, or both. Synced activities merge species from whichever you connect.</p>
   </div>
 
-  <form method="post" action="{% url 'core:ebird_profile' %}" class="source">
+  <form method="post" action="{% url 'core:ebird_profile' %}" class="source card">
     {% csrf_token %}
     <div class="source__meta">
       <h3>eBird</h3>
@@ -51,7 +44,7 @@
     </div>
   </form>
 
-  <form method="post" action="{% url 'core:inaturalist_profile' %}" class="source">
+  <form method="post" action="{% url 'core:inaturalist_profile' %}" class="source card">
     {% csrf_token %}
     <div class="source__meta">
       <h3>iNaturalist</h3>
@@ -83,7 +76,7 @@
     <span class="eyebrow">Sync</span>
     <h2>Update your activities</h2>
   </div>
-  <form method="post" action="{% url 'core:sync' %}" class="sync">
+  <form method="post" action="{% url 'core:sync' %}" class="sync card">
     {% csrf_token %}
     <button class="btn btn--primary" type="submit">Sync now</button>
     <span class="muted small">Checks your most recent Strava activities against your linked sources. New uploads sync automatically.</span>
