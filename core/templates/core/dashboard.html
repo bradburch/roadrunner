@@ -1,21 +1,35 @@
 {% extends "core/base.html" %}
+{% block nav %}
+<nav class="nav" aria-label="Primary">
+  <a href="#sources">Sources</a>
+  <a href="#how">How it works</a>
+  <a href="https://www.strava.com/athletes/{{ profile.strava_athlete_id }}" target="_blank" rel="noopener">Strava profile</a>
+  <form method="post" action="{% url 'core:logout' %}">
+    {% csrf_token %}
+    <button class="btn btn--sm" type="submit">Log out</button>
+  </form>
+</nav>
+{% endblock %}
 {% block content %}
-<div class="account">
+<div class="section-head account">
+  <span class="eyebrow">Dashboard</span>
   <h1>{{ user.get_full_name|default:"Your account" }}</h1>
-  <span class="muted small">Strava athlete
-    <a href="https://www.strava.com/athletes/{{ profile.strava_athlete_id }}" target="_blank" rel="noopener">{{ profile.strava_athlete_id }}</a></span>
 </div>
 
-<section class="dash-section">
-  <h2>Sources</h2>
-  <p class="help section-intro">Link eBird, iNaturalist, or both. Synced activities merge species from whichever you connect.</p>
+<section class="section" id="sources">
+  <div class="section-head">
+    <span class="eyebrow">Sources</span>
+    <h2>Link your nature apps</h2>
+    <p>Link eBird, iNaturalist, or both. Synced activities merge species from whichever you connect.</p>
+  </div>
 
   <form method="post" action="{% url 'core:ebird_profile' %}" class="source">
     {% csrf_token %}
     <div class="source__meta">
       <h3>eBird</h3>
       {% if profile.ebird_profile_id %}
-        <span class="status status--on">Linked · <a href="https://ebird.org/profile/{{ profile.ebird_profile_id }}" target="_blank" rel="noopener">view profile</a></span>
+        <span class="status status--on">Linked</span>
+        <a class="small" href="https://ebird.org/profile/{{ profile.ebird_profile_id }}" target="_blank" rel="noopener">View profile</a>
       {% else %}
         <span class="status">Not linked</span>
       {% endif %}
@@ -42,7 +56,8 @@
     <div class="source__meta">
       <h3>iNaturalist</h3>
       {% if profile.inaturalist_user_id %}
-        <span class="status status--on">Linked · <a href="https://www.inaturalist.org/people/{{ profile.inaturalist_user_id }}" target="_blank" rel="noopener">view profile</a></span>
+        <span class="status status--on">Linked</span>
+        <a class="small" href="https://www.inaturalist.org/people/{{ profile.inaturalist_user_id }}" target="_blank" rel="noopener">View profile</a>
       {% else %}
         <span class="status">Not linked</span>
       {% endif %}
@@ -63,17 +78,19 @@
   </form>
 </section>
 
-<section class="dash-section">
-  <h2>Sync</h2>
+<section class="section">
+  <div class="section-head">
+    <span class="eyebrow">Sync</span>
+    <h2>Update your activities</h2>
+  </div>
   <form method="post" action="{% url 'core:sync' %}" class="sync">
     {% csrf_token %}
     <button class="btn btn--primary" type="submit">Sync now</button>
-    <span class="muted small">Checks your most recent Strava activities against your linked sources.</span>
+    <span class="muted small">Checks your most recent Strava activities against your linked sources. New uploads sync automatically.</span>
   </form>
 </section>
 
-<details class="about">
-  <summary>How matching works</summary>
+<section class="section" id="how">
   {% include "core/_about.html" %}
-</details>
+</section>
 {% endblock %}
