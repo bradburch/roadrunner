@@ -6,7 +6,7 @@
     <a href="https://www.strava.com/athletes/{{ profile.strava_athlete_id }}" target="_blank" rel="noopener">{{ profile.strava_athlete_id }}</a></span>
 </div>
 
-<section class="section">
+<section class="dash-section">
   <h2>Sources</h2>
   <p class="help section-intro">Link eBird, iNaturalist, or both. Synced activities merge species from whichever you connect.</p>
 
@@ -63,7 +63,7 @@
   </form>
 </section>
 
-<section class="section">
+<section class="dash-section">
   <h2>Sync</h2>
   <form method="post" action="{% url 'core:sync' %}" class="sync">
     {% csrf_token %}
