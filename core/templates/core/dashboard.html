@@ -1,79 +1,38 @@
 {% extends "core/base.html" %}
+{% block nav %}
+<a href="#sources">Sources</a>
+<a href="#how">How it works</a>
+{% endblock %}
 {% block content %}
-<div class="account">
+<div class="section-head">
+  <span class="eyebrow">Dashboard</span>
   <h1>{{ user.get_full_name|default:"Your account" }}</h1>
-  <span class="muted small">Strava athlete
-    <a href="https://www.strava.com/athletes/{{ profile.strava_athlete_id }}" target="_blank" rel="noopener">{{ profile.strava_athlete_id }}</a></span>
 </div>
 
-<section class="section">
-  <h2>Sources</h2>
-  <p class="help section-intro">Link eBird, iNaturalist, or both. Synced activities merge species from whichever you connect.</p>
+<section class="section" id="sources">
+  <div class="section-head">
+    <span class="eyebrow">Sources</span>
+    <h2>Link your nature apps</h2>
+    <p>Link eBird, iNaturalist, or both. Synced activities merge species from whichever you connect.</p>
+  </div>
 
-  <form method="post" action="{% url 'core:ebird_profile' %}" class="source">
-    {% csrf_token %}
-    <div class="source__meta">
-      <h3>eBird</h3>
-      {% if profile.ebird_profile_id %}
-        <span class="status status--on">Linked · <a href="https://ebird.org/profile/{{ profile.ebird_profile_id }}" target="_blank" rel="noopener">view profile</a></span>
-      {% else %}
-        <span class="status">Not linked</span>
-      {% endif %}
-    </div>
-    <div>
-      <label for="ebird_profile_id">eBird profile ID</label>
-      <div class="field-row">
-        <input class="input" id="ebird_profile_id" name="ebird_profile_id"
-               value="{{ profile.ebird_profile_id }}" placeholder="e.g. AbCdEf1234"
-               aria-describedby="ebird_help" autocomplete="off" spellcheck="false">
-        <button class="btn" type="submit">Save</button>
-      </div>
-      <p class="help" id="ebird_help">
-        The part of your profile URL after <code>/profile/</code>, as in
-        <code>ebird.org/profile/<b>AbCdEf1234</b></code>. Your eBird profile
-        must be <strong>public</strong>; you can change that in your eBird
-        account settings.
-      </p>
-    </div>
-  </form>
-
-  <form method="post" action="{% url 'core:inaturalist_profile' %}" class="source">
-    {% csrf_token %}
-    <div class="source__meta">
-      <h3>iNaturalist</h3>
-      {% if profile.inaturalist_user_id %}
-        <span class="status status--on">Linked · <a href="https://www.inaturalist.org/people/{{ profile.inaturalist_user_id }}" target="_blank" rel="noopener">view profile</a></span>
-      {% else %}
-        <span class="status">Not linked</span>
-      {% endif %}
-    </div>
-    <div>
-      <label for="inaturalist_user_id">iNaturalist username</label>
-      <div class="field-row">
-        <input class="input" id="inaturalist_user_id" name="inaturalist_user_id"
-               value="{{ profile.inaturalist_user_id }}" placeholder="e.g. naturelover"
-               aria-describedby="inat_help" autocomplete="off" spellcheck="false">
-        <button class="btn" type="submit">Save</button>
-      </div>
-      <p class="help" id="inat_help">
-        The part of your profile URL after <code>/people/</code>, as in
-        <code>inaturalist.org/people/<b>naturelover</b></code>.
-      </p>
-    </div>
-  </form>
+  {% include "core/_source_form.html" with title="eBird" action="core:ebird_profile" field="ebird_profile_id" label="eBird profile ID" value=profile.ebird_profile_id host="ebird.org" segment="profile" example="AbCdEf1234" must_be_public=True %}
+  {% include "core/_source_form.html" with title="iNaturalist" action="core:inaturalist_profile" field="inaturalist_user_id" label="iNaturalist username" value=profile.inaturalist_user_id host="www.inaturalist.org" segment="people" example="naturelover" %}
 </section>
 
 <section class="section">
-  <h2>Sync</h2>
-  <form method="post" action="{% url 'core:sync' %}" class="sync">
+  <div class="section-head">
+    <span class="eyebrow">Sync</span>
+    <h2>Update your activities</h2>
+  </div>
+  <form method="post" action="{% url 'core:sync' %}" class="sync card">
     {% csrf_token %}
     <button class="btn btn--primary" type="submit">Sync now</button>
-    <span class="muted small">Checks your most recent Strava activities against your linked sources.</span>
+    <span class="muted small">Checks your most recent Strava activities against your linked sources. New uploads sync automatically.</span>
   </form>
 </section>
 
-<details class="about">
-  <summary>How matching works</summary>
+<section class="section" id="how">
   {% include "core/_about.html" %}
-</details>
+</section>
 {% endblock %}

@@ -1,0 +1,27 @@
+<form method="post" action="{% url action %}" class="source card">
+  {% csrf_token %}
+  <div class="source__meta">
+    <h3>{{ title }}</h3>
+    {% if value %}
+      <span class="status status--on">Linked</span>
+      <a class="small" href="https://{{ host }}/{{ segment }}/{{ value }}" target="_blank" rel="noopener">View profile</a>
+    {% else %}
+      <span class="status">Not linked</span>
+    {% endif %}
+  </div>
+  <div>
+    <label for="{{ field }}">{{ label }}</label>
+    <div class="field-row">
+      <input class="input" id="{{ field }}" name="{{ field }}"
+             value="{{ value }}" placeholder="e.g. {{ example }}"
+             aria-describedby="{{ field }}_help" autocomplete="off" spellcheck="false">
+      <button class="btn" type="submit">Save</button>
+    </div>
+    <p class="help" id="{{ field }}_help">
+      The part of your profile URL after <code>/{{ segment }}/</code>, as in
+      <code>{{ host }}/{{ segment }}/<b>{{ example }}</b></code>.
+      {% if must_be_public %}Your {{ title }} profile must be <strong>public</strong>;
+      you can change that in your {{ title }} account settings.{% endif %}
+    </p>
+  </div>
+</form>

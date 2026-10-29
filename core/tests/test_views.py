@@ -109,6 +109,16 @@ class DashboardTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "eBird")
 
+    def test_logout_ends_session(self):
+        self._login()
+        resp = self.client.post(reverse("core:logout"))
+        self.assertRedirects(resp, reverse("core:landing"))
+        self.assertEqual(self.client.get(reverse("core:dashboard")).status_code, 302)
+
+    def test_logout_rejects_get(self):
+        self._login()
+        self.assertEqual(self.client.get(reverse("core:logout")).status_code, 405)
+
     def test_save_ebird_profile(self):
         self._login()
         resp = self.client.post(reverse("core:ebird_profile"), {"ebird_profile_id": "ABC123"})
