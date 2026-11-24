@@ -407,6 +407,15 @@ class CronRechecksTests(TestCase):
 
     @override_settings(CRON_SECRET="s3cret")
     @patch("core.views.recheck.run_due_rechecks")
+    def test_non_ascii_header_forbidden_not_500(self, drain):
+        resp = self.client.get(
+            reverse("core:run_rechecks"), HTTP_AUTHORIZATION="Bearer é"
+        )
+        self.assertEqual(resp.status_code, 403)
+        drain.assert_not_called()
+
+    @override_settings(CRON_SECRET="s3cret")
+    @patch("core.views.recheck.run_due_rechecks")
     def test_missing_secret_forbidden(self, drain):
         resp = self.client.get(reverse("core:run_rechecks"))
         self.assertEqual(resp.status_code, 403)

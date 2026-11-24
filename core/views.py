@@ -195,8 +195,11 @@ def run_rechecks(request):
     # (an unset secret + DEBUG must not become an unauthenticated drain).
     if not expected:
         return HttpResponseForbidden("cron not configured")
+    # Compare bytes: compare_digest raises TypeError on non-ASCII str, which
+    # would turn a junk header into a 500 instead of a 403.
     if not secrets.compare_digest(
-        request.headers.get("Authorization", ""), f"Bearer {expected}"
+        request.headers.get("Authorization", "").encode(),
+        f"Bearer {expected}".encode(),
     ):
         return HttpResponseForbidden("bad cron secret")
     processed = recheck.run_due_rechecks()

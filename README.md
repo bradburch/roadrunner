@@ -79,21 +79,21 @@ and 8 hours later**. A scheduler hits `/cron/rechecks` (hourly) and drains due
 re-checks; the moment a checklist is found the species are written and the queue
 entry is dropped, and entries are discarded after the 8-hour attempt.
 
-`/cron/rechecks` is an authenticated HTTP GET — it works with any external
-scheduler, so it does **not** require Vercel's paid plan (Vercel Cron is daily-only
-on the free **Hobby** plan). This repo drives it from a free **GitHub Actions**
-schedule, `.github/workflows/rechecks.yml`, which `curl`s the endpoint hourly with
-the secret.
+`/cron/rechecks` is driven by **Vercel Cron** on the free **Hobby** plan. Hobby
+only allows cron expressions that run once per day, so `vercel.json` declares 24
+daily entries, one per UTC hour, which together fire hourly. Hobby invokes each
+anywhere within its hour — fine here, since the 2/4/8h ladder tolerates lateness.
 
-Setup:
+Setup: set `CRON_SECRET` in the Vercel environment and redeploy (a deployment
+captures the secret at build time). Vercel sends it automatically as
+`Authorization: Bearer <CRON_SECRET>`; the endpoint denies all calls when
+`CRON_SECRET` is unset. Crons run only against the production deployment.
 
-1. Set `CRON_SECRET` in the Vercel environment (the app reads it to authenticate the call).
-2. Add the **same** value as a GitHub Actions secret named `CRON_SECRET`
-   (repo → Settings → Secrets and variables → Actions).
-3. If your deployed URL differs from `roadrunner-iota-nine.vercel.app`, update it in the workflow.
+After deploying, confirm the 24 jobs appear under Vercel → Settings → Cron Jobs.
 
-The endpoint denies all calls when `CRON_SECRET` is unset, and requires
-`Authorization: Bearer <CRON_SECRET>` otherwise. GitHub may delay scheduled runs
-under load and disables the schedule after 60 days of repo inactivity — both fine
-here, since the 2/4/8h ladder tolerates lateness. (You can equally point Vercel
-Cron, cron-job.org, or any scheduler at the same endpoint.)
+**Backstop:** `.github/workflows/rechecks.yml` still `curl`s the endpoint hourly
+from GitHub Actions (it needs the same value as an Actions secret named
+`CRON_SECRET`). Draining twice in an hour is harmless. Delete the workflow once
+the Vercel crons are seen firing; if they never register, it keeps re-checks
+alive. The endpoint is a plain authenticated HTTP GET, so any other scheduler
+(cron-job.org, etc.) can hit it too.
