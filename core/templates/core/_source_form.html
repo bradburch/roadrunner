@@ -4,7 +4,7 @@
     <h3>{{ title }}</h3>
     {% if value %}
       <span class="status status--on">Linked</span>
-      <a class="small" href="https://{{ host }}/{{ segment }}/{{ value }}" target="_blank" rel="noopener">View profile</a>
+      <a href="https://{{ host }}/{{ segment }}/{{ value }}" target="_blank" rel="noopener">View profile</a>
     {% else %}
       <span class="status">Not linked</span>
     {% endif %}
@@ -15,7 +15,7 @@
       <input class="input" id="{{ field }}" name="{{ field }}"
              value="{{ value }}" placeholder="e.g. {{ example }}"
              aria-describedby="{{ field }}_help" autocomplete="off" spellcheck="false">
-      <button class="btn" type="submit">Save</button>
+      <button class="btn btn--dark" type="submit">Save</button>
     </div>
     <p class="help" id="{{ field }}_help">
       The part of your profile URL after <code>/{{ segment }}/</code>, as in
